@@ -23,11 +23,11 @@
 
 using System.Runtime.CompilerServices;
 
-namespace Gemstone.GemTem
+namespace Gemstone.PQDIFExplorer
 {
     /// <summary>
-    /// The <see cref="Gemstone.GemTem"/> namespace organizes all Gemstone library functionality
-    /// related to gemtem. The root gemtem namespace also includes common gemtem classes,
+    /// The <see cref="Gemstone.PQDIFExplorer"/> namespace organizes all Gemstone library functionality
+    /// related to pqdifexplorer. The root pqdifexplorer namespace also includes common pqdifexplorer classes,
     /// e.g., <see cref="Class"/>.
     /// </summary>
     [CompilerGenerated]
