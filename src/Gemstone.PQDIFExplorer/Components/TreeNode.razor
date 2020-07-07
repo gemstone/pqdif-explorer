@@ -1,0 +1,118 @@
+﻿@using System.Diagnostics.CodeAnalysis
+
+<div class="treeview-node @SelectedClass @CollapseClass">
+    <div class="treeview-node-body @BodyClass">
+        <span class="treeview-node-bullet" @onclick="@ToggleCollapsedAsync">&nbsp;</span>
+        <span class="treeview-node-icon" @ondblclick="@ToggleCollapsedAsync" />
+        <span class="treeview-node-label" @onclick="@SelectAsync">@Label</span>
+    </div>
+    @if (ChildContent != null && !IsCollapsed)
+    {
+        <div class="treeview-node-children">
+            @ChildContent
+        </div>
+    }
+</div>
+
+@code {
+    [CascadingParameter]
+    public TreeView? TreeView { get; set; }
+
+    [Parameter]
+    public string BodyClass { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Label { get; set; } = "TreeNode";
+
+    [Parameter]
+    public bool StartCollapsed { get; set; }
+
+    [Parameter]
+    public object? Data { get; set; }
+
+    [Parameter]
+    public EventCallback<TreeNodeSelectedEventArgs> Selected { get; set; }
+
+    [Parameter]
+    public EventCallback<TreeNodeSelectedEventArgs> Deselected { get; set; }
+
+    [Parameter]
+    public EventCallback<TreeNodeCollapseEventArgs> Collapsed { get; set; }
+
+    [Parameter]
+    public EventCallback<TreeNodeCollapseEventArgs> Expanded { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    public bool IsSelected =>
+        TreeView?.SelectedNode == this;
+
+    public bool IsCollapsed { get; private set; }
+
+    [return: MaybeNull]
+    public T GetData<T>() =>
+        (Data is T data) ? data : default(T);
+
+    public async Task SelectAsync()
+    {
+        if (TreeView != null)
+        {
+            TreeNode? previous = TreeView.SelectedNode;
+            await TreeView.SetSelectedNodeAsync(this);
+            previous?.StateHasChanged();
+        }
+    }
+
+    public async Task DeselectAsync()
+    {
+        if (TreeView != null)
+        {
+            TreeNode? selected = TreeView.SelectedNode;
+
+            if (selected == this)
+                await TreeView.SetSelectedNodeAsync(null);
+        }
+    }
+
+    public async Task ToggleCollapsedAsync()
+    {
+        IsCollapsed = !IsCollapsed;
+
+        TreeNodeCollapseEventArgs args = new TreeNodeCollapseEventArgs(TreeView, this);
+
+        if (IsCollapsed)
+        {
+            await (TreeView?.NodeCollapsed.InvokeAsync(args) ?? Task.CompletedTask);
+            await Collapsed.InvokeAsync(args);
+        }
+        else
+        {
+            await (TreeView?.NodeExpanded.InvokeAsync(args) ?? Task.CompletedTask);
+            await Expanded.InvokeAsync(args);
+        }
+    }
+
+    // Only read StartCollapsed when the component is
+    // initialized to prevent state from being overwritten
+    // by renders or state changes in parent components
+    protected override void OnInitialized() =>
+        IsCollapsed = StartCollapsed;
+
+    private string SelectedClass => IsSelected
+        ? "treeview-node-selected"
+        : string.Empty;
+
+    private string CollapseClass
+    {
+        get
+        {
+            if (ChildContent == null)
+                return string.Empty;
+
+            return IsCollapsed
+                ? "treeview-node-collapse"
+                : "treeview-node-expand";
+        }
+    }
+}

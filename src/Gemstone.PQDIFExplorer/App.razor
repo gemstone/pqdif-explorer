@@ -1,0 +1,44 @@
+@using Gemstone.PQDIF.Physical
+
+@inject PQDIFFileCache Cache 
+@inject NavigationManager NavigationManager
+
+<Router AppAssembly="@typeof(Program).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+    </Found>
+    <NotFound>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <p>Sorry, there's nothing at this address.</p>
+        </LayoutView>
+    </NotFound>
+</Router>
+
+@code {
+    public class JSFile
+    {
+        public string? Name { get; set; }
+        public IEnumerable<byte>? Data { get; set; }
+    }
+
+    private static Func<JSFile, Task>? HandleFileAsyncFunc { get; set; }
+
+    protected override void OnInitialized()
+    {
+        HandleFileAsyncFunc = async jsFile =>
+        {
+            if (jsFile.Data == null)
+                return;
+
+            string fileName = jsFile.Name ?? "Unknown.pqd";
+            byte[] fileData = jsFile.Data.ToArray();
+            IEnumerable<Record> records = await PQDIFFile.ParseAsync(fileData);
+            PQDIFFile pqdifFile = Cache.Save(fileName, records);
+            NavigationManager.NavigateTo($"PQDIF/{pqdifFile.Key}");
+        };
+    }
+
+    [JSInvokable]
+    public static async Task HandleFileAsync(JSFile file) =>
+        await (HandleFileAsyncFunc?.Invoke(file) ?? Task.CompletedTask);
+}

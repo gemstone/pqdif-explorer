@@ -1,7 +1,7 @@
 ﻿//******************************************************************************************************
-//  Class.cs - Gbtc
+//  NodeSelectedEventArgs.cs - Gbtc
 //
-//  Copyright © 2019, Grid Protection Alliance.  All Rights Reserved.
+//  Copyright © 2020, Grid Protection Alliance.  All Rights Reserved.
 //
 //  Licensed to the Grid Protection Alliance (GPA) under one or more contributor license agreements. See
 //  the NOTICE file distributed with this work for additional information regarding copyright ownership.
@@ -16,17 +16,26 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  11/04/2019 - J. Ritchie Carroll
+//  07/04/2020 - Stephen C. Wills
 //       Generated original version of source code.
 //
 //******************************************************************************************************
 
-namespace Gemstone.PQDIFExplorer
+using System;
+
+namespace PQDIFExplorer.Web.Components
 {
-    /// <summary>
-    /// Sample class for new PQDIFExplorer library.
-    /// </summary>
-    public class Class
+    public class TreeNodeSelectedEventArgs : EventArgs
     {
+        public TreeView View { get; }
+        public TreeNode? Previous { get; }
+        public TreeNode? Selected { get; }
+
+        public TreeNodeSelectedEventArgs(TreeView view, TreeNode? previous, TreeNode? selected)
+        {
+            View = view;
+            Previous = previous;
+            Selected = selected;
+        }
     }
 }

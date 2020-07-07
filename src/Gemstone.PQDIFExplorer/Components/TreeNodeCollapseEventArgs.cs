@@ -1,7 +1,7 @@
 ﻿//******************************************************************************************************
-//  NamespaceDoc.cs - Gbtc
+//  TreeNodeEventArgs.cs - Gbtc
 //
-//  Copyright © 2019, Grid Protection Alliance.  All Rights Reserved.
+//  Copyright © 2020, Grid Protection Alliance.  All Rights Reserved.
 //
 //  Licensed to the Grid Protection Alliance (GPA) under one or more contributor license agreements. See
 //  the NOTICE file distributed with this work for additional information regarding copyright ownership.
@@ -16,22 +16,24 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  10/16/2019 - J. Ritchie Carroll
+//  07/04/2020 - Stephen C. Wills
 //       Generated original version of source code.
 //
 //******************************************************************************************************
 
-using System.Runtime.CompilerServices;
+using System;
 
-namespace Gemstone.PQDIFExplorer
+namespace PQDIFExplorer.Web.Components
 {
-    /// <summary>
-    /// The <see cref="Gemstone.PQDIFExplorer"/> namespace organizes all Gemstone library functionality
-    /// related to pqdifexplorer. The root pqdifexplorer namespace also includes common pqdifexplorer classes,
-    /// e.g., <see cref="Class"/>.
-    /// </summary>
-    [CompilerGenerated]
-    class NamespaceDoc
+    public class TreeNodeCollapseEventArgs : EventArgs
     {
+        public TreeView? View { get; }
+        public TreeNode Node { get; }
+
+        public TreeNodeCollapseEventArgs(TreeView? view, TreeNode node)
+        {
+            View = view;
+            Node = node;
+        }
     }
 }

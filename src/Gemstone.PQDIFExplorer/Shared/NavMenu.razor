@@ -1,0 +1,56 @@
+﻿@implements IDisposable
+@inject PQDIFFileCache Cache 
+
+<div class="top-row pl-4 navbar navbar-dark">
+    <a class="navbar-brand" href="">
+        <img src="explorer.ico" width="32" height="32" aria-hidden="true" /> PQDIF Explorer
+    </a>
+    <button class="navbar-toggler" @onclick="ToggleNavMenu">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+</div>
+
+<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+    <ul class="nav flex-column flex-nowrap">
+        <li class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="oi oi-home" aria-hidden="true"></span> Home
+            </NavLink>
+        </li>
+
+        @foreach (PQDIFFile file in PQDIFFiles)
+        {
+            <li @key="file" class="nav-item px-3" style="white-space: nowrap">
+                <NavLink class="nav-link" href="@($"PQDIF/{file.Key}")" title="@file.Name">
+                    <span class="oi oi-file" aria-hidden="true"></span>
+                    <span class="d-inline-block text-overflow-ellipsis">@file.Name</span>
+                </NavLink>
+            </li>
+        }
+    </ul>
+</div>
+
+@code {
+    private bool CollapseNavMenu { get; set; } = true;
+
+    private string? NavMenuCssClass =>
+        CollapseNavMenu ? "collapse" : null;
+
+    private IEnumerable<PQDIFFile> PQDIFFiles { get; set; } =
+        Enumerable.Empty<PQDIFFile>();
+
+    protected override void OnInitialized()
+    {
+        PQDIFFiles = Cache.RetrieveAll();
+        Cache.Updated += HandleCacheUpdated;
+    }
+
+    public void Dispose() =>
+        Cache.Updated -= HandleCacheUpdated;
+
+    private void HandleCacheUpdated(object sender, EventArgs args) =>
+        StateHasChanged();
+
+    private void ToggleNavMenu() =>
+        CollapseNavMenu = !CollapseNavMenu;
+}

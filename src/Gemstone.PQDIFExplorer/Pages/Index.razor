@@ -1,0 +1,74 @@
+﻿@page "/"
+@implements IDisposable
+
+@using Gemstone.PQDIF.Physical
+
+@inject IJSRuntime JSRuntime
+@inject PQDIFFileCache Cache
+@inject NavigationManager NavigationManager
+
+<div>
+    @if (PQDIFFiles.Any())
+    {
+        @foreach (PQDIFFile file in PQDIFFiles)
+        {
+            <div @key="file">
+                <a href="@($"PQDIF/{file.Key}")">
+                    <img src="explorer.ico" width="20" height="20" /> @file.Name
+                </a>
+                <a class="close-file" href="" @onclick="@(_ => Cache.Remove(file.Key))" @onclick:preventDefault="true">
+                    <span class="oi oi-x" title="Close" />
+                </a>
+            </div>
+        }
+    }
+
+    <div>
+        <input id="pqdif-file-input" class="d-none" type="file" accept=".pqd" @onchange="@HandleFileAsync" />
+
+        <a class="open-file" type="button" href="" @onclick="@TriggerFileInputAsync" @onclick:preventDefault="true">
+            <span class="oi oi-folder" />
+            Open...
+        </a>
+    </div>
+</div>
+
+@code {
+    private class JSFile
+    {
+        public string? Name { get; set; }
+        public IEnumerable<byte>? Data { get; set; }
+    }
+
+    private IEnumerable<PQDIFFile> PQDIFFiles { get; set; } =
+        Enumerable.Empty<PQDIFFile>();
+
+    protected override void OnInitialized()
+    {
+        PQDIFFiles = Cache.RetrieveAll();
+        Cache.Updated += HandleCacheUpdated;
+    }
+
+    public void Dispose() =>
+        Cache.Updated -= HandleCacheUpdated;
+
+    private void HandleCacheUpdated(object sender, EventArgs args) =>
+        StateHasChanged();
+
+    private async Task HandleFileAsync()
+    {
+        JSFile jsFile = await JSRuntime.InvokeAsync<JSFile>("getFileAsync", "pqdif-file-input");
+
+        if (jsFile.Data == null)
+            return;
+
+        string fileName = jsFile.Name ?? "Unknown.pqd";
+        byte[] fileData = jsFile.Data.ToArray();
+        IEnumerable<Record> records = await PQDIFFile.ParseAsync(fileData);
+        PQDIFFile pqdifFile = Cache.Save(fileName, records);
+        NavigationManager.NavigateTo($"PQDIF/{pqdifFile.Key}");
+    }
+
+    private async Task TriggerFileInputAsync() =>
+        await JSRuntime.InvokeVoidAsync("triggerClick", "pqdif-file-input");
+}

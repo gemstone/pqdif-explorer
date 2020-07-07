@@ -1,7 +1,7 @@
 //******************************************************************************************************
-//  Tests.cs - Gbtc
+//  Program.cs - Gbtc
 //
-//  Copyright Â© 2019, Grid Protection Alliance.  All Rights Reserved.
+//  Copyright © 2020, Grid Protection Alliance.  All Rights Reserved.
 //
 //  Licensed to the Grid Protection Alliance (GPA) under one or more contributor license agreements. See
 //  the NOTICE file distributed with this work for additional information regarding copyright ownership.
@@ -16,22 +16,28 @@
 //
 //  Code Modification History:
 //  ----------------------------------------------------------------------------------------------------
-//  11/04/2019 - J. Ritchie Carroll
+//  07/05/2020 - Stephen C. Wills
 //       Generated original version of source code.
 //
 //******************************************************************************************************
 
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
+using System.Net.Http;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace Gemstone.PQDIFExplorer.UnitTests
+namespace PQDIFExplorer.Web
 {
-    [TestClass]
-    public class Tests
+    public class Program
     {
-        [TestMethod]
-        public void FunctionalityTests()
+        public static async Task Main(string[] args)
         {
-            Assert.IsTrue(true);
+            var builder = WebAssemblyHostBuilder.CreateDefault(args);
+            builder.RootComponents.Add<App>("app");
+            builder.Services.AddTransient(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+            builder.Services.AddSingleton<PQDIFFileCache>();
+            await builder.Build().RunAsync();
         }
     }
 }

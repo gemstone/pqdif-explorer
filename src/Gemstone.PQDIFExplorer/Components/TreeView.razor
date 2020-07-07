@@ -1,0 +1,36 @@
+﻿<CascadingValue Value="this">
+    <div class="treeview">
+        @ChildContent
+    </div>
+</CascadingValue>
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public EventCallback<TreeNodeSelectedEventArgs> SelectionChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<TreeNodeCollapseEventArgs> NodeCollapsed { get; set; }
+
+    [Parameter]
+    public EventCallback<TreeNodeCollapseEventArgs> NodeExpanded { get; set; }
+
+    public TreeNode? SelectedNode { get; private set; }
+
+    public async Task SetSelectedNodeAsync(TreeNode? node)
+    {
+        TreeNode? previous = SelectedNode;
+
+        if (previous == node)
+            return;
+
+        SelectedNode = node;
+
+        TreeNodeSelectedEventArgs args = new TreeNodeSelectedEventArgs(this, previous, node);
+        await SelectionChanged.InvokeAsync(args);
+        await (previous?.Deselected.InvokeAsync(args) ?? Task.CompletedTask);
+        await (node?.Selected.InvokeAsync(args) ?? Task.CompletedTask);
+    }
+}

@@ -1,0 +1,46 @@
+﻿@page "/About"
+
+<img src="Logo.png" aria-hidden="true" />
+<div aria-hidden="true">&nbsp;</div>
+
+<h3>About PQDIF Explorer</h3>
+
+<p>
+    PQDIF Explorer is a simple tool designed for low-level visualization
+    of data stored in the Power Quality Data Interchange Format. It provides
+    a low-level hierarchical view to complement other higher level tools
+    such as @PQDiffractorHomepage. This tool is primarily targeted toward
+    validating the correctness of PQDIF files for software that relies
+    on the format.
+</p>
+
+<p>
+    This is the (experimental) web-based version of PQDIF Explorer. For
+    more information or to download the original desktop application version
+    of the tool, visit the @ProductHomepage or the @LatestRelease.
+</p>
+
+<div class="d-flex justify-content-start">
+    <p class="font-weight-bold pr-2">NOTE:</p>
+
+    <p>
+        Due to the sandboxed nature of web-based applications, the PQDIF
+        Explorer does not have direct access to the filesystem on your
+        computer. PQDIF files used by or generated from the app must be
+        "uploaded" into or "downloaded" from the web browser. These files
+        are used solely by the app to provide the visualizations and
+        functionality you see in this tool. No PQDIF data is uploaded
+        to GPA web servers or used for any other purpose.
+    </p>
+</div>
+
+@code {
+    private RenderFragment PQDiffractorHomepage =>
+        @<a href="http://www.pqview.com/pqdiffractor/">PQDiffractor</a>;
+
+    private RenderFragment ProductHomepage =>
+        @<a href="https://github.com/GridProtectionAlliance/PQDIFExplorer">PQDIF Explorer product homepage</a>;
+
+    private RenderFragment LatestRelease =>
+        @<a href="https://github.com/GridProtectionAlliance/PQDIFExplorer/releases/latest">latest release</a>;
+}

@@ -1,0 +1,140 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>PQDIF Explorer</title>
+    <base href="/" />
+    <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet" />
+    <link href="css/app.css" rel="stylesheet" />
+    <link href="css/treeview.css" rel="stylesheet" />
+    <link href="manifest.json" rel="manifest" />
+    <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png" />
+</head>
+
+<body>
+    <app>Loading...</app>
+
+    <div id="blazor-not-supported">
+        Web Assembly is not supported by your web browser.
+        For details about web browser compatibility, see
+        <a href="https://developer.mozilla.org/en-US/docs/WebAssembly#Browser_compatibility">
+            https://developer.mozilla.org/en-US/docs/WebAssembly#Browser_compatibility
+        </a>.
+    </div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <script src="_framework/blazor.webassembly.js"></script>
+
+    <script>
+        var wasmSupported = (function () {
+            try {
+                var wasmFound =
+                    typeof WebAssembly === "object" &&
+                    typeof WebAssembly.instantiate === "function";
+
+                if (wasmFound) {
+                    var module = new WebAssembly.Module(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00));
+
+                    if (module instanceof WebAssembly.Module)
+                        return new WebAssembly.Instance(module) instanceof WebAssembly.Instance;
+                }
+            } catch (e) {
+            }
+
+            return false;
+        })();
+
+        if (wasmSupported) {
+            navigator.serviceWorker.register('service-worker.js');
+
+            window.addEventListener("DOMContentLoaded", function () {
+                var html = document.documentElement;
+
+                html.addEventListener("dragover", function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+
+                html.addEventListener("drop", function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    var fileList = e.dataTransfer.files;
+
+                    if (fileList.length === 0)
+                        return;
+
+                    var fileInfo = fileList[0];
+                    var reader = new FileReader();
+
+                    reader.onload = function (e) {
+                        var buffer = e.target.result;
+                        var u8 = new Uint8Array(buffer);
+                        var arr = Array.from(u8);
+                        var file = { Name: fileInfo.name, Data: arr };
+                        DotNet.invokeMethodAsync("PQDIFExplorer.Web", "HandleFileAsync", file);
+                    };
+
+                    reader.readAsArrayBuffer(fileInfo);
+                });
+            });
+
+            window.getFileAsync = async function (fileInputID) {
+                var fileInputElement = document.getElementById(fileInputID);
+                var fileList = fileInputElement.files;
+
+                if (fileList.length === 0)
+                    return { Name: "", Data: "" };
+
+                var promise = new Promise(function (resolve, reject) {
+                    try {
+                        var fileInfo = fileList[0];
+                        var reader = new FileReader();
+
+                        reader.onload = function (e)
+                        {
+                            var buffer = e.target.result;
+                            var u8 = new Uint8Array(buffer);
+                            var arr = Array.from(u8);
+                            var file = { Name: fileInfo.name, Data: arr };
+                            resolve(file);
+                        };
+
+                        reader.readAsArrayBuffer(fileInfo);
+                    } catch (ex) {
+                        reject(ex);
+                    }
+                });
+
+                return await promise;
+            };
+
+            window.triggerClick = function (id) {
+                var eventData = {
+                    view: window,
+                    bubbles: true,
+                    cancelable: true
+                };
+
+                var event = new MouseEvent("click", eventData);
+                var element = document.getElementById(id);
+                element.dispatchEvent(event);
+            };
+        } else {
+            var appElement = document.getElementsByTagName("app")[0];
+            appElement.style.display = "none";
+
+            var notSupportedElement = document.getElementById("blazor-not-supported");
+            notSupportedElement.style.display = "initial";
+        }
+    </script>
+</body>
+
+</html>
