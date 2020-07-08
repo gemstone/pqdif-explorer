@@ -1,6 +1,7 @@
 ﻿@page "/"
 @implements IDisposable
 
+@using System.Threading
 @using Gemstone.PQDIF.Physical
 
 @inject IJSRuntime JSRuntime
@@ -26,9 +27,8 @@
     <div>
         <input id="pqdif-file-input" class="d-none" type="file" accept=".pqd" @onchange="@HandleFileAsync" />
 
-        <a class="open-file" type="button" href="" @onclick="@TriggerFileInputAsync" @onclick:preventDefault="true">
-            <span class="oi oi-folder" />
-            Open...
+        <a class="open-file @Disabled" type="button" href="" @onclick="@TriggerFileInputAsync" @onclick:preventDefault="true">
+            <span class="oi oi-folder" /> Open...
         </a>
     </div>
 </div>
@@ -43,32 +43,51 @@
     private IEnumerable<PQDIFFile> PQDIFFiles { get; set; } =
         Enumerable.Empty<PQDIFFile>();
 
+    private CancellationTokenSource? LoadCanceller { get; set; }
+
+    private bool Loading =>
+        LoadCanceller?.IsCancellationRequested == false;
+
+    private string Disabled =>
+        Loading ? "disabled" : string.Empty;
+
     protected override void OnInitialized()
     {
         PQDIFFiles = Cache.RetrieveAll();
         Cache.Updated += HandleCacheUpdated;
     }
 
-    public void Dispose() =>
+    public void Dispose()
+    {
+        LoadCanceller?.Cancel();
         Cache.Updated -= HandleCacheUpdated;
+    }
 
     private void HandleCacheUpdated(object sender, EventArgs args) =>
         StateHasChanged();
 
     private async Task HandleFileAsync()
     {
-        JSFile jsFile = await JSRuntime.InvokeAsync<JSFile>("getFileAsync", "pqdif-file-input");
+        LoadCanceller = new CancellationTokenSource();
+
+        CancellationToken token = LoadCanceller.Token;
+        JSFile jsFile = await JSRuntime.InvokeAsync<JSFile>("getFileAsync", token, "pqdif-file-input");
 
         if (jsFile.Data == null)
             return;
 
         string fileName = jsFile.Name ?? "Unknown.pqd";
         byte[] fileData = jsFile.Data.ToArray();
-        IEnumerable<Record> records = await PQDIFFile.ParseAsync(fileData);
+        IEnumerable<Record> records = await PQDIFFile.ParseAsync(fileData, token);
         PQDIFFile pqdifFile = Cache.Save(fileName, records);
         NavigationManager.NavigateTo($"PQDIF/{pqdifFile.Key}");
     }
 
-    private async Task TriggerFileInputAsync() =>
+    private async Task TriggerFileInputAsync()
+    {
+        if (Loading)
+            return;
+
         await JSRuntime.InvokeVoidAsync("triggerClick", "pqdif-file-input");
+    }
 }

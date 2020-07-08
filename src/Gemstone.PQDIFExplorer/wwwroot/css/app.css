@@ -107,6 +107,17 @@ app {
     padding-top: 1.1rem;
 }
 
+/* Needed to override _reboot.scss styles */
+[type=button].disabled {
+    cursor: wait;
+}
+
+a.disabled {
+    color: gray;
+    text-decoration: none;
+    cursor: wait;
+}
+
 .open-file > .oi-folder {
     color: khaki;
 }

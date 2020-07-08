@@ -26,6 +26,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Gemstone.PQDIF.Logical;
 using Gemstone.PQDIF.Physical;
@@ -44,7 +45,7 @@ namespace PQDIFExplorer.Web
             Records = records;
         }
 
-        public static async Task<IEnumerable<Record>> ParseAsync(byte[] fileData)
+        public static async Task<IEnumerable<Record>> ParseAsync(byte[] fileData, CancellationToken cancellationToken = default)
         {
             List<Record> records = new List<Record>();
             using MemoryStream stream = new MemoryStream(fileData);
@@ -53,6 +54,10 @@ namespace PQDIFExplorer.Web
 
             while (parser.HasNextRecord())
             {
+                // WASM is single threaded so it needs a
+                // moment to update the UI on each iteration
+                await Task.Delay(1, cancellationToken);
+
                 Record record = await parser.GetNextRecordAsync();
                 ContainerRecord? containerRecord = ContainerRecord.CreateContainerRecord(record);
 
