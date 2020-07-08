@@ -1,44 +1,107 @@
+@implements IDisposable
+
+@using System.Threading
 @using Gemstone.PQDIF.Physical
 
-@inject PQDIFFileCache Cache 
+@inject IJSRuntime JSRuntime
+@inject PQDIFFileCache Cache
 @inject NavigationManager NavigationManager
 
-<Router AppAssembly="@typeof(Program).Assembly">
-    <Found Context="routeData">
-        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
-    </Found>
-    <NotFound>
-        <LayoutView Layout="@typeof(MainLayout)">
-            <p>Sorry, there's nothing at this address.</p>
-        </LayoutView>
-    </NotFound>
-</Router>
+<div class="app" @ref="AppContainer">
+    <CascadingValue Value="this">
+        <Router AppAssembly="@typeof(Program).Assembly">
+            <Found Context="routeData">
+                <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+            </Found>
+            <NotFound>
+                <LayoutView Layout="@typeof(MainLayout)">
+                    <p>Sorry, there's nothing at this address.</p>
+                </LayoutView>
+            </NotFound>
+        </Router>
+    </CascadingValue>
+</div>
 
 @code {
-    public class JSFile
+    private class LoadingHandle : IDisposable
     {
-        public string? Name { get; set; }
-        public IEnumerable<byte>? Data { get; set; }
-    }
+        private CancellationTokenSource CancellationTokenSource { get; }
+        private NavigationManager NavigationManager { get; }
+        private bool Disposed { get; set; }
 
-    private static Func<JSFile, Task>? HandleFileAsyncFunc { get; set; }
-
-    protected override void OnInitialized()
-    {
-        HandleFileAsyncFunc = async jsFile =>
+        public LoadingHandle(CancellationTokenSource cancellationTokenSource, NavigationManager navigationManager)
         {
-            if (jsFile.Data == null)
+            CancellationTokenSource = cancellationTokenSource;
+            NavigationManager = navigationManager;
+            NavigationManager.LocationChanged += HandleLocationChanged;
+        }
+
+        public void Dispose()
+        {
+            if (Disposed)
                 return;
 
-            string fileName = jsFile.Name ?? "Unknown.pqd";
-            byte[] fileData = jsFile.Data.ToArray();
-            IEnumerable<Record> records = await PQDIFFile.ParseAsync(fileData);
-            PQDIFFile pqdifFile = Cache.Save(fileName, records);
-            NavigationManager.NavigateTo($"PQDIF/{pqdifFile.Key}");
-        };
+            NavigationManager.LocationChanged -= HandleLocationChanged;
+            CancellationTokenSource.Cancel();
+            CancellationTokenSource.Dispose();
+            Disposed = true;
+        }
+
+        private void HandleLocationChanged(object sender, LocationChangedEventArgs args) =>
+            Dispose();
+    }
+
+    private ElementReference AppContainer { get; set; }
+    private string? DropCachingRegistration { get; set; }
+    public CancellationToken LoadToken { get; set; }
+
+    public IDisposable? TryStartLoading()
+    {
+        if (LoadToken.CanBeCanceled && !LoadToken.IsCancellationRequested)
+            return null;
+
+        CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+        LoadToken = cancellationTokenSource.Token;
+        return new LoadingHandle(cancellationTokenSource, NavigationManager);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        const string RegisterFunctionName = "pqdif.registerDropHandler";
+        DotNetObjectReference<App> appReference = DotNetObjectReference.Create(this);
+        var callback = new { Instance = appReference, MethodName = nameof(HandleDropAsync) };
+        DropCachingRegistration = await JSRuntime.InvokeAsync<string>(RegisterFunctionName, AppContainer, callback);
     }
 
     [JSInvokable]
-    public static async Task HandleFileAsync(JSFile file) =>
-        await (HandleFileAsyncFunc?.Invoke(file) ?? Task.CompletedTask);
+    public async Task HandleDropAsync()
+    {
+        if (DropCachingRegistration == null)
+            return;
+
+        using IDisposable? loadingHandle = TryStartLoading();
+
+        if (loadingHandle == null)
+            return;
+
+        FileKeyData[] fileKeys = await Cache.SaveAsync(DropCachingRegistration, LoadToken);
+
+        if (!fileKeys.Any())
+            return;
+
+        FileKeyData firstKey = fileKeys[0];
+        NavigationManager.NavigateTo($"PQDIF/View/{firstKey.Key}");
+    }
+
+    public void Dispose()
+    {
+        if (DropCachingRegistration == null)
+            return;
+
+        const string UnregisterFunctionName = "pqdif.unregisterDropHandler";
+        JSRuntime.InvokeVoidAsync(UnregisterFunctionName);
+    }
 }

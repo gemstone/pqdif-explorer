@@ -31,6 +31,7 @@
     </div>
 
     <script src="_framework/blazor.webassembly.js"></script>
+    <script src="pqdif-explorer.js"></script>
 
     <script>
         var wasmSupported = (function () {
@@ -54,79 +55,14 @@
         if (wasmSupported) {
             navigator.serviceWorker.register('service-worker.js');
 
-            window.addEventListener("DOMContentLoaded", function () {
-                var html = document.documentElement;
+            (async function () {
+                await navigator.serviceWorker.ready;
 
-                html.addEventListener("dragover", function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                });
-
-                html.addEventListener("drop", function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-
-                    var fileList = e.dataTransfer.files;
-
-                    if (fileList.length === 0)
-                        return;
-
-                    var fileInfo = fileList[0];
-                    var reader = new FileReader();
-
-                    reader.onload = function (e) {
-                        var buffer = e.target.result;
-                        var u8 = new Uint8Array(buffer);
-                        var arr = Array.from(u8);
-                        var file = { Name: fileInfo.name, Data: arr };
-                        DotNet.invokeMethodAsync("PQDIFExplorer.Web", "HandleFileAsync", file);
-                    };
-
-                    reader.readAsArrayBuffer(fileInfo);
-                });
-            });
-
-            window.getFileAsync = async function (fileInputID) {
-                var fileInputElement = document.getElementById(fileInputID);
-                var fileList = fileInputElement.files;
-
-                if (fileList.length === 0)
-                    return { Name: "", Data: "" };
-
-                var promise = new Promise(function (resolve, reject) {
-                    try {
-                        var fileInfo = fileList[0];
-                        var reader = new FileReader();
-
-                        reader.onload = function (e)
-                        {
-                            var buffer = e.target.result;
-                            var u8 = new Uint8Array(buffer);
-                            var arr = Array.from(u8);
-                            var file = { Name: fileInfo.name, Data: arr };
-                            resolve(file);
-                        };
-
-                        reader.readAsArrayBuffer(fileInfo);
-                    } catch (ex) {
-                        reject(ex);
-                    }
-                });
-
-                return await promise;
-            };
-
-            window.triggerClick = function (id) {
-                var eventData = {
-                    view: window,
-                    bubbles: true,
-                    cancelable: true
-                };
-
-                var event = new MouseEvent("click", eventData);
-                var element = document.getElementById(id);
-                element.dispatchEvent(event);
-            };
+                // The PQDIF files are cached by the service worker
+                // so the app won't work without a controller
+                if (!navigator.serviceWorker.controller)
+                    window.location.reload();
+            })();
         } else {
             var appElement = document.getElementsByTagName("app")[0];
             appElement.style.display = "none";

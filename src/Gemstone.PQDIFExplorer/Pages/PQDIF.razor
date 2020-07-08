@@ -1,5 +1,8 @@
-﻿@page "/PQDIF/{fileKey}"
+﻿@page "/PQDIF/View/{fileKey}"
 
+@implements IDisposable
+
+@using System.Threading
 @using Gemstone.PQDIF
 @using Gemstone.PQDIF.Physical
 
@@ -38,12 +41,21 @@
     private IEnumerable<Record> FileRecords =>
         File?.Records ?? Enumerable.Empty<Record>();
 
-    protected override void OnInitialized()
+    private CancellationTokenSource? RetrieveTokenSource { get; set; }
+
+    protected override async Task OnInitializedAsync()
     {
         if (FileKey == null)
             return;
 
-        File = Cache.Retrieve(FileKey);
+        RetrieveTokenSource = new CancellationTokenSource();
+        File = await Cache.RetrieveAsync(FileKey, RetrieveTokenSource.Token);
+    }
+
+    public void Dispose()
+    {
+        RetrieveTokenSource?.Cancel();
+        RetrieveTokenSource?.Dispose();
     }
 
     private void HandleSelectionChanged(TreeNodeSelectedEventArgs args)
@@ -148,7 +160,9 @@
         if (element is CollectionElement collection && collection.Elements.Any())
             return ToTreeNode(collection);
 
-        return @<TreeNode @key="element" Label="@Tag.GetTag(element.TagOfElement)?.Name" StartCollapsed="true" Data="element" />;
+        Tag? tag = Tag.GetTag(element.TagOfElement);
+        string label = tag?.Name ?? element.TagOfElement.ToString();
+        return @<TreeNode @key="element" Label="@label" StartCollapsed="true" Data="element" />;
     }
 
     private RenderFragment ToTreeNode(CollectionElement collection) =>

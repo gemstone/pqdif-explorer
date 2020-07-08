@@ -25,31 +25,69 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Gemstone.PQDIF.Logical;
 using Gemstone.PQDIF.Physical;
+using Microsoft.JSInterop;
 
 namespace PQDIFExplorer.Web
 {
+    public class FileKeyData
+    {
+        public string Key { get; set; }
+        public string Name { get; set; }
+
+        public FileKeyData()
+        {
+            Key = string.Empty;
+            Name = string.Empty;
+        }
+
+        public FileKeyData(string key)
+        {
+            Key = key;
+
+            Encoding encoding = new UTF8Encoding(false);
+            byte[] keyBytes = Convert.FromBase64String(key);
+            string json = encoding.GetString(keyBytes);
+            using JsonDocument document = JsonDocument.Parse(json);
+            JsonElement nameProperty = document.RootElement.GetProperty("name");
+            Name = nameProperty.GetString();
+        }
+
+        public FileKeyData(string key, string name)
+        {
+            Key = key;
+            Name = name;
+        }
+    }
+
     public class PQDIFFile
     {
-        public string Key => GetKey();
+        public string Key { get; }
         public string Name { get; }
         public IEnumerable<Record> Records { get; }
 
-        public PQDIFFile(string name, IEnumerable<Record> records)
+        public PQDIFFile(string key, string name, IEnumerable<Record> records)
         {
+            Key = key;
             Name = name;
             Records = records;
         }
 
-        public static async Task<IEnumerable<Record>> ParseAsync(byte[] fileData, CancellationToken cancellationToken = default)
+        public static async IAsyncEnumerable<Record> ParseAsync(Stream stream, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            List<Record> records = new List<Record>();
-            using MemoryStream stream = new MemoryStream(fileData);
-            using PhysicalParser parser = new PhysicalParser();
+            await using Stream? localStream = !stream.CanSeek
+                ? new MemoryStream()
+                : null;
+
+            Stream parsingStream = localStream ?? stream;
+            await using PhysicalParser parser = new PhysicalParser();
             await parser.OpenAsync(stream);
 
             while (parser.HasNextRecord())
@@ -67,78 +105,120 @@ namespace PQDIFExplorer.Web
                     parser.CompressionStyle = containerRecord.CompressionStyle;
                 }
 
-                records.Add(record);
+                yield return record;
             }
-
-            return records;
-        }
-
-        private string GetKey()
-        {
-            Encoding utf8 = new UTF8Encoding(false);
-            byte[] nameData = utf8.GetBytes(Name);
-            return Convert.ToBase64String(nameData);
         }
     }
 
     public class PQDIFFileCache
     {
-        // Everything is accessed from the UI thread so no need for ConcurrentDictionary
-        private Dictionary<string, PQDIFFile> Lookup { get; } = new Dictionary<string, PQDIFFile>();
+        private HttpClient HttpClient { get; }
+        private IJSRuntime JSRuntime { get; }
+
+        // Client-side Blazor is single-threaded, so no need for ConcurrentDictionary
+        private Dictionary<string, PQDIFFile> Lookup { get; }
 
         // Allow components to react to cache updates
         public event EventHandler? Updated;
 
-        public IEnumerable<PQDIFFile> RetrieveAll() =>
-            Lookup.Values.OrderBy(file => file.Name);
-
-        public PQDIFFile? Retrieve(string fileKey)
+        public PQDIFFileCache(HttpClient httpClient, IJSRuntime jsRuntime)
         {
-            if (Lookup.TryGetValue(fileKey, out PQDIFFile file))
-                return file;
-
-            return null;
+            HttpClient = httpClient;
+            JSRuntime = jsRuntime;
+            Lookup = new Dictionary<string, PQDIFFile>();
         }
 
-        public PQDIFFile Save(string fileName, IEnumerable<Record> records)
+        public async IAsyncEnumerable<FileKeyData> RetrieveKeysAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            PQDIFFile file = TryCache(fileName, records)
-                ?? HandleCacheCollision(fileName, records);
+            await WhenWorkerIsRegistered();
 
-            OnCacheUpdated();
-            return file;
-        }
+            using HttpResponseMessage response = await HttpClient.GetAsync("/PQDIF/List", cancellationToken);
 
-        public bool Remove(string fileKey)
-        {
-            bool removed = Lookup.Remove(fileKey);
-            OnCacheUpdated();
-            return removed;
-        }
+            if (response.StatusCode != System.Net.HttpStatusCode.OK)
+                throw new Exception($"Invalid response listing PQDIF files: {response.ReasonPhrase} ({response.StatusCode})");
 
-        private PQDIFFile HandleCacheCollision(string originalFileName, IEnumerable<Record> records)
-        {
-            int num = 2;
-            string rootFileName = Path.GetFileNameWithoutExtension(originalFileName);
-            string extension = Path.GetExtension(originalFileName);
-            string ResolveFileName() => $"{rootFileName} ({num}){extension}";
+            if (response.Content.Headers.ContentLength == 0)
+                yield break;
 
-            while (true)
+            await using Stream responseStream = await response.Content.ReadAsStreamAsync();
+            using JsonDocument document = await JsonDocument.ParseAsync(responseStream, default, cancellationToken);
+
+            foreach (JsonElement element in document.RootElement.EnumerateArray())
             {
-                string fileName = ResolveFileName();
-                PQDIFFile? file = TryCache(fileName, records);
+                JsonElement keyProperty = element.GetProperty("key");
+                string key = keyProperty.GetString();
 
-                if (file != null)
-                    return file;
+                JsonElement nameProperty = element.GetProperty("name");
+                string name = nameProperty.GetString();
 
-                num++;
+                yield return new FileKeyData(key, name);
             }
         }
 
-        private PQDIFFile? TryCache(string fileName, IEnumerable<Record> records)
+        public async Task<PQDIFFile?> RetrieveAsync(string fileKey, CancellationToken cancellationToken = default)
         {
-            PQDIFFile file = new PQDIFFile(fileName, records);
-            return Lookup.TryAdd(file.Key, file) ? file : null;
+            await WhenWorkerIsRegistered();
+
+            if (Lookup.TryGetValue(fileKey, out PQDIFFile cachedFile))
+                return cachedFile;
+
+            string url = $"/PQDIF/Retrieve/{fileKey}";
+            using HttpResponseMessage response = await HttpClient.GetAsync(url, cancellationToken);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return null;
+
+            if (response.StatusCode != System.Net.HttpStatusCode.OK)
+                throw new Exception($"Invalid response retrieving PQDIF file: {response.ReasonPhrase} ({response.StatusCode})");
+
+            await using Stream stream = await response.Content.ReadAsStreamAsync();
+
+            IEnumerable<Record> records = await PQDIFFile
+                .ParseAsync(stream, cancellationToken)
+                .ToListAsync();
+
+            FileKeyData keyData = new FileKeyData(fileKey);
+            PQDIFFile file = new PQDIFFile(fileKey, keyData.Name, records);
+            Lookup[fileKey] = file;
+            return file;
+        }
+
+        public async Task<FileKeyData[]> SaveAsync(object fileSource, CancellationToken cancellationToken = default)
+        {
+            await WhenWorkerIsRegistered();
+            const string CacheFunction = "pqdif.cacheFilesAsync";
+            FileKeyData[] fileKeyData = await JSRuntime.InvokeAsync<FileKeyData[]>(CacheFunction, cancellationToken, fileSource);
+            OnCacheUpdated();
+            return fileKeyData;
+        }
+
+        public async Task PurgeAsync(string fileKey, CancellationToken cancellationToken = default)
+        {
+            await WhenWorkerIsRegistered();
+
+            Lookup.Remove(fileKey);
+
+            using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Delete, "/PQDIF/Purge");
+            request.Content = new StringContent(fileKey);
+
+            using HttpResponseMessage response = await HttpClient.SendAsync(request, cancellationToken);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.OK)
+                OnCacheUpdated();
+            else if (response.StatusCode != System.Net.HttpStatusCode.NotFound)
+                throw new Exception($"Invalid response purging PQDIF file: {response.ReasonPhrase} ({response.StatusCode})");
+        }
+
+        private async Task WhenWorkerIsRegistered()
+        {
+            Task serviceWorkerTask = JSRuntime
+                .InvokeVoidAsync("pqdif.workerIsReady")
+                .AsTask();
+
+            await Task.WhenAny(Task.Delay(5000), serviceWorkerTask);
+
+            if (!serviceWorkerTask.IsCompleted)
+                throw new TaskCanceledException("Timeout waiting for service worker registration");
         }
 
         private void OnCacheUpdated() =>

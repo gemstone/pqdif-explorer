@@ -1,23 +1,23 @@
 ﻿@page "/"
 @implements IDisposable
 
+@using System.Linq
 @using System.Threading
-@using Gemstone.PQDIF.Physical
 
 @inject IJSRuntime JSRuntime
 @inject PQDIFFileCache Cache
 @inject NavigationManager NavigationManager
 
 <div>
-    @if (PQDIFFiles.Any())
+    @if (FileKeys.Any())
     {
-        @foreach (PQDIFFile file in PQDIFFiles)
+        @foreach (FileKeyData fileKey in FileKeys)
         {
-            <div @key="file">
-                <a href="@($"PQDIF/{file.Key}")">
-                    <img src="explorer.ico" width="20" height="20" /> @file.Name
+            <div @key="fileKey.Key">
+                <a href="@($"PQDIF/View/{fileKey.Key}")">
+                    <img src="explorer.ico" width="20" height="20" /> @fileKey.Name
                 </a>
-                <a class="close-file" href="" @onclick="@(_ => Cache.Remove(file.Key))" @onclick:preventDefault="true">
+                <a class="close-file" href="" @onclick="@(async _ => await Cache.PurgeAsync(fileKey.Key))" @onclick:preventDefault="true">
                     <span class="oi oi-x" title="Close" />
                 </a>
             </div>
@@ -25,7 +25,7 @@
     }
 
     <div>
-        <input id="pqdif-file-input" class="d-none" type="file" accept=".pqd" @onchange="@HandleFileAsync" />
+        <input id="pqdif-file-input" class="d-none" type="file" accept=".pqd" @ref="FileInput" @onchange="@HandleFileAsync" />
 
         <a class="open-file @Disabled" type="button" href="" @onclick="@TriggerFileInputAsync" @onclick:preventDefault="true">
             <span class="oi oi-folder" /> Open...
@@ -34,53 +34,66 @@
 </div>
 
 @code {
-    private class JSFile
-    {
-        public string? Name { get; set; }
-        public IEnumerable<byte>? Data { get; set; }
-    }
+    [CascadingParameter]
+    private App? App { get; set; }
 
-    private IEnumerable<PQDIFFile> PQDIFFiles { get; set; } =
-        Enumerable.Empty<PQDIFFile>();
+    private ElementReference FileInput { get; set; }
 
-    private CancellationTokenSource? LoadCanceller { get; set; }
+    private IEnumerable<FileKeyData> FileKeys { get; set; } =
+        Enumerable.Empty<FileKeyData>();
+
+    private CancellationToken LoadToken =>
+        App?.LoadToken ?? default;
 
     private bool Loading =>
-        LoadCanceller?.IsCancellationRequested == false;
+        LoadToken.CanBeCanceled &&
+        !LoadToken.IsCancellationRequested;
 
     private string Disabled =>
         Loading ? "disabled" : string.Empty;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        PQDIFFiles = Cache.RetrieveAll();
+        FileKeys = await Cache
+            .RetrieveKeysAsync()
+            .ToListAsync();
+
         Cache.Updated += HandleCacheUpdated;
     }
 
     public void Dispose()
     {
-        LoadCanceller?.Cancel();
         Cache.Updated -= HandleCacheUpdated;
     }
 
-    private void HandleCacheUpdated(object sender, EventArgs args) =>
-        StateHasChanged();
-
-    private async Task HandleFileAsync()
+    private void HandleCacheUpdated(object sender, EventArgs args)
     {
-        LoadCanceller = new CancellationTokenSource();
+        Task<List<FileKeyData>> retrieveTask = Cache
+            .RetrieveKeysAsync()
+            .ToListAsync()
+            .AsTask();
 
-        CancellationToken token = LoadCanceller.Token;
-        JSFile jsFile = await JSRuntime.InvokeAsync<JSFile>("getFileAsync", token, "pqdif-file-input");
+        retrieveTask.ContinueWith(task =>
+        {
+            FileKeys = task.Result;
+            StateHasChanged();
+        });
+    }
 
-        if (jsFile.Data == null)
+    private async Task HandleFileAsync(ChangeEventArgs args)
+    {
+        using IDisposable? loadingHandle = App?.TryStartLoading();
+
+        if (loadingHandle == null)
             return;
 
-        string fileName = jsFile.Name ?? "Unknown.pqd";
-        byte[] fileData = jsFile.Data.ToArray();
-        IEnumerable<Record> records = await PQDIFFile.ParseAsync(fileData, token);
-        PQDIFFile pqdifFile = Cache.Save(fileName, records);
-        NavigationManager.NavigateTo($"PQDIF/{pqdifFile.Key}");
+        FileKeyData[] fileKeys = await Cache.SaveAsync(FileInput, LoadToken);
+
+        if (!fileKeys.Any())
+            return;
+
+        FileKeyData firstKey = fileKeys[0];
+        NavigationManager.NavigateTo($"PQDIF/View/{firstKey.Key}");
     }
 
     private async Task TriggerFileInputAsync()
@@ -88,6 +101,6 @@
         if (Loading)
             return;
 
-        await JSRuntime.InvokeVoidAsync("triggerClick", "pqdif-file-input");
+        await JSRuntime.InvokeVoidAsync("pqdif.triggerClick", FileInput);
     }
 }

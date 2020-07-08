@@ -1,5 +1,9 @@
 ﻿@implements IDisposable
-@inject PQDIFFileCache Cache 
+
+@using System.Linq
+
+@inject PQDIFFileCache Cache
+
 
 <div class="top-row pl-4 navbar navbar-dark">
     <a class="navbar-brand" href="">
@@ -18,12 +22,12 @@
             </NavLink>
         </li>
 
-        @foreach (PQDIFFile file in PQDIFFiles)
+        @foreach (FileKeyData fileKey in FileKeys)
         {
-            <li @key="file" class="nav-item px-3" style="white-space: nowrap">
-                <NavLink class="nav-link" href="@($"PQDIF/{file.Key}")" title="@file.Name">
+            <li @key="fileKey" class="nav-item px-3" style="white-space: nowrap">
+                <NavLink class="nav-link" href="@($"PQDIF/View/{fileKey.Key}")" title="@fileKey.Name">
                     <span class="oi oi-file" aria-hidden="true"></span>
-                    <span class="d-inline-block text-overflow-ellipsis">@file.Name</span>
+                    <span class="d-inline-block text-overflow-ellipsis">@fileKey.Name</span>
                 </NavLink>
             </li>
         }
@@ -36,20 +40,37 @@
     private string? NavMenuCssClass =>
         CollapseNavMenu ? "collapse" : null;
 
-    private IEnumerable<PQDIFFile> PQDIFFiles { get; set; } =
-        Enumerable.Empty<PQDIFFile>();
+    private IEnumerable<FileKeyData> FileKeys { get; set; } =
+        Enumerable.Empty<FileKeyData>();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        PQDIFFiles = Cache.RetrieveAll();
+        FileKeys = await Cache
+            .RetrieveKeysAsync()
+            .OrderBy(fileKey => fileKey.Name)
+            .ToListAsync();
+
+        StateHasChanged();
         Cache.Updated += HandleCacheUpdated;
     }
 
     public void Dispose() =>
         Cache.Updated -= HandleCacheUpdated;
 
-    private void HandleCacheUpdated(object sender, EventArgs args) =>
-        StateHasChanged();
+    private void HandleCacheUpdated(object sender, EventArgs args)
+    {
+        Task<List<FileKeyData>> retrieveTask = Cache
+            .RetrieveKeysAsync()
+            .OrderBy(fileKey => fileKey.Name)
+            .ToListAsync()
+            .AsTask();
+
+        retrieveTask.ContinueWith(task =>
+        {
+            FileKeys = task.Result;
+            StateHasChanged();
+        });
+    }
 
     private void ToggleNavMenu() =>
         CollapseNavMenu = !CollapseNavMenu;
