@@ -1,9 +1,6 @@
 ﻿@page "/PQDIF/View/{fileKey}"
 
-@implements IDisposable
-
 @using System.Threading
-@using Gemstone.PQDIF
 @using Gemstone.PQDIF.Physical
 
 @inject PQDIFFileCache Cache
@@ -12,15 +9,12 @@
 
 <div class="pqdif-file-viewer">
     <div class="treeview-pane">
-        <TreeView SelectionChanged="@HandleSelectionChanged">
-            @foreach (Record record in FileRecords)
+        <TreeView @ref="Tree" SelectionChanged="StateHasChanged">
+            @foreach (Record record in Records)
             {
-                <TreeNode @key="record" Label="@record.Header.TypeOfRecord.ToString()" StartCollapsed="true" Data="record">
-                    @foreach (Element element in record.Body.Collection.Elements)
-                    {
-                        @ToTreeNode(element);
-                    }
-                </TreeNode>
+                int? index = GetIndex(record);
+                var key = new { index, record };
+                <RecordNode @key="key" Index="index" Record="record" />
             }
         </TreeView>
     </div>
@@ -34,142 +28,41 @@
     [Parameter]
     public string? FileKey { get; set; }
 
+    private TreeView? Tree { get; set; }
     private PQDIFFile? File { get; set; }
     private string? FileName => File?.Name;
-    private RenderFragment? Detail { get; set; }
 
-    private IEnumerable<Record> FileRecords =>
+    private RenderFragment? Detail => Tree?.SelectedNode?.Data switch
+    {
+        Record record => @<RecordDetail @key="record" Record="record" />,
+        Element element => @<ElementDetail @key="element" Element="element" />,
+        _ => @<Text></Text>
+    };
+
+    private IEnumerable<Record> Records =>
         File?.Records ?? Enumerable.Empty<Record>();
 
-    private CancellationTokenSource? RetrieveTokenSource { get; set; }
+    private IDictionary<Record, int>? IndexLookup { get; set; }
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
         if (FileKey == null)
             return;
 
-        RetrieveTokenSource = new CancellationTokenSource();
-        File = await Cache.RetrieveAsync(FileKey, RetrieveTokenSource.Token);
+        using CancellationTokenSource retrieveTokenSource = new CancellationTokenSource();
+        File = await Cache.RetrieveAsync(FileKey, retrieveTokenSource.Token);
+        IndexLookup = RecordNode.GetIndexLookup(Records);
+        StateHasChanged();
     }
 
-    public void Dispose()
+    private int? GetIndex(Record record)
     {
-        RetrieveTokenSource?.Cancel();
-        RetrieveTokenSource?.Dispose();
+        if (IndexLookup == null)
+            return null;
+
+        if (!IndexLookup.TryGetValue(record, out int index))
+            return null;
+
+        return index;
     }
-
-    private void HandleSelectionChanged(TreeNodeSelectedEventArgs args)
-    {
-        TreeNode? selected = args.Selected;
-
-        if (selected == null)
-            return;
-
-        Detail = selected.Data switch
-        {
-            Record record => GetDetails(record),
-            Element element => GetDetails(element),
-            _ => @<Text></Text>
-        };
-    }
-
-    // Gets detailed information about the given record.
-    private RenderFragment GetDetails(Record record) =>
-        @<div>
-            <div><span class="font-weight-bold">Signature:</span> @record.Header.RecordSignature</div>
-            <div><span class="font-weight-bold">Type:</span> @record.Header.TypeOfRecord (@record.Header.RecordTypeTag)</div>
-            <div><span class="font-weight-bold">Header Size:</span> @record.Header.HeaderSize</div>
-            <div><span class="font-weight-bold">Body Size:</span> @record.Header.BodySize</div>
-
-            @if (record.Body != null)
-            {
-                <div><span class="font-weight-bold">Read Size:</span> @record.Body.Collection.ReadSize</div>
-                <div><span class="font-weight-bold">Checksum:</span> @($"0x{record.Header.Checksum:X}") (Computed: @($"0x{record.Body.Checksum:X}"))</div>
-            }
-            else
-            {
-                <div><span class="font-weight-bold">Read Size:</span> 0</div>
-                <div><span class="font-weight-bold">Checksum:</span> @($"0x{record.Header.Checksum:X}") (Computed: 0x1)</div>
-            }
-
-            @{ 
-                Tag? tag = Tag.GetTag(record.Header.RecordTypeTag);
-
-                if (tag != null)
-                {
-                    <div>&nbsp;</div>
-                    <div><h5>-- Tag details --</h5></div>
-                    <div><span class="font-weight-bold">Name:</span> @tag.Name</div>
-                    <div><span class="font-weight-bold">Standard Name:</span> @tag.StandardName</div>
-                    <div><span class="font-weight-bold">Description:</span> @tag.Description</div>
-                    <div><span class="font-weight-bold">Required:</span> @(tag.Required ? "Yes" : "No")</div>
-                }
-            }
-        </div>;
-
-    // Gets detailed information about the given element.
-    private RenderFragment GetDetails(Element element) =>
-        @<div>
-            @if (element is CollectionElement collection)
-            {
-                <div><span class="font-weight-bold">Read Size:</span> @collection.ReadSize</div>
-            }
-            else
-            {
-                <div><span class="font-weight-bold">Value:</span> @ValueAsString(element)</div>
-            }
-
-            <div>&nbsp;</div>
-            <div><span class="font-weight-bold">Tag:</span> @element.TagOfElement</div>
-            <div><span class="font-weight-bold">Element type:</span> @element.TypeOfElement</div>
-            <div><span class="font-weight-bold">Physical type:</span> @element.TypeOfValue</div>
-
-            @{ 
-                Tag? tag = Tag.GetTag(element.TagOfElement);
-
-                if (tag != null)
-                {
-                    <div>&nbsp;</div>
-                    <div><h5>-- Tag details --</h5></div>
-                    <div><span class="font-weight-bold">Name:</span> @tag.Name</div>
-                    <div><span class="font-weight-bold">Standard Name:</span> @tag.StandardName</div>
-                    <div><span class="font-weight-bold">Description:</span> @tag.Description</div>
-                    <div><span class="font-weight-bold">Element type:</span> @tag.ElementType</div>
-                    <div><span class="font-weight-bold">Physical type:</span> @tag.PhysicalType</div>
-                    <div><span class="font-weight-bold">Required:</span> @(tag.Required ? "Yes" : "No")</div>
-                }
-            }
-        </div>;
-
-    // Converts the value of the given element
-    // to the appropriate string representation.
-    private string? ValueAsString(Element element)
-    {
-        try
-        {
-            return element.ValueAsString();
-        }
-        catch
-        {
-            return $"ERROR ({element.ValueAsHex()})";
-        }
-    }
-
-    private RenderFragment ToTreeNode(Element element)
-    {
-        if (element is CollectionElement collection && collection.Elements.Any())
-            return ToTreeNode(collection);
-
-        Tag? tag = Tag.GetTag(element.TagOfElement);
-        string label = tag?.Name ?? element.TagOfElement.ToString();
-        return @<TreeNode @key="element" Label="@label" StartCollapsed="true" Data="element" />;
-    }
-
-    private RenderFragment ToTreeNode(CollectionElement collection) =>
-        @<TreeNode @key="collection" Label="@Tag.GetTag(collection.TagOfElement)?.Name" StartCollapsed="true" Data="collection">
-            @foreach (Element child in collection.Elements)
-            {
-                @ToTreeNode(child);
-            }
-        </TreeNode>;
 }

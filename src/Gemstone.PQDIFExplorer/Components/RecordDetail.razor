@@ -1,0 +1,46 @@
+﻿@using Gemstone.PQDIF
+@using Gemstone.PQDIF.Physical
+
+<div>
+    @if (Record != null)
+    {
+        <div><span class="font-weight-bold">Signature:</span> @Record.Header.RecordSignature</div>
+        <div><span class="font-weight-bold">Type:</span> @Record.Header.TypeOfRecord (@Record.Header.RecordTypeTag)</div>
+        <div><span class="font-weight-bold">Header Size:</span> @Record.Header.HeaderSize</div>
+        <div><span class="font-weight-bold">Body Size:</span> @Record.Header.BodySize</div>
+
+        @if (Record.Body != null)
+        {
+            <div><span class="font-weight-bold">Read Size:</span> @Record.Body.Collection.ReadSize</div>
+            <div><span class="font-weight-bold">Checksum:</span> @($"0x{Record.Header.Checksum:X}") (Computed: @($"0x{Record.Body.Checksum:X}"))</div>
+        }
+        else
+        {
+            <div><span class="font-weight-bold">Read Size:</span> 0</div>
+            <div><span class="font-weight-bold">Checksum:</span> @($"0x{Record.Header.Checksum:X}") (Computed: 0x1)</div>
+        }
+
+        @if (Tag != null)
+        {
+            <div>&nbsp;</div>
+            <div><h5>-- Tag details --</h5></div>
+            <div><span class="font-weight-bold">Name:</span> @Tag.Name</div>
+            <div><span class="font-weight-bold">Standard Name:</span> @Tag.StandardName</div>
+            <div><span class="font-weight-bold">Description:</span> @Tag.Description</div>
+            <div><span class="font-weight-bold">Required:</span> @(Tag.Required ? "Yes" : "No")</div>
+        }
+    }
+    else
+    {
+        <Text>No detail available</Text>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Record? Record { get; set; }
+
+    private Tag? Tag => (Record != null)
+        ? Tag.GetTag(Record.Header.RecordTypeTag)
+        : null;
+}

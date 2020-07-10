@@ -1,0 +1,52 @@
+﻿@using Gemstone.PQDIF
+@using Gemstone.PQDIF.Physical
+
+<div>
+    @if (Element != null)
+    {
+        @if (Element is CollectionElement collection)
+        {
+            <div><span class="font-weight-bold">Read Size:</span> @collection.ReadSize</div>
+        }
+        else
+        {
+            <div><span class="font-weight-bold">Value:</span> @ValueAsString()</div>
+        }
+
+        <div>&nbsp;</div>
+        <div><span class="font-weight-bold">Tag:</span> @Element.TagOfElement</div>
+        <div><span class="font-weight-bold">Element type:</span> @Element.TypeOfElement</div>
+        <div><span class="font-weight-bold">Physical type:</span> @Element.TypeOfValue</div>
+
+        @if (Tag != null)
+        {
+            <div>&nbsp;</div>
+            <div><h5>-- Tag details --</h5></div>
+            <div><span class="font-weight-bold">Name:</span> @Tag.Name</div>
+            <div><span class="font-weight-bold">Standard Name:</span> @Tag.StandardName</div>
+            <div><span class="font-weight-bold">Description:</span> @Tag.Description</div>
+            <div><span class="font-weight-bold">Element type:</span> @Tag.ElementType</div>
+            <div><span class="font-weight-bold">Physical type:</span> @Tag.PhysicalType</div>
+            <div><span class="font-weight-bold">Required:</span> @(Tag.Required ? "Yes" : "No")</div>
+        }
+    }
+    else
+    {
+        <Text>No detail available</Text>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Element? Element { get; set; }
+
+    private Tag? Tag => (Element != null)
+        ? Tag.GetTag(Element.TagOfElement)
+        : null;
+
+    private string? ValueAsString()
+    {
+        try { return Element?.ValueAsString(); }
+        catch { return $"ERROR ({Element?.ValueAsHex()})"; }
+    }
+}

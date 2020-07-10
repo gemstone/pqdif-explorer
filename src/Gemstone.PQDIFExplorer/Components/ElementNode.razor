@@ -1,0 +1,65 @@
+﻿@using Gemstone.PQDIF
+@using Gemstone.PQDIF.Physical
+
+@if (Children.Any())
+{
+    <TreeNode Label="@Label" StartCollapsed="true" Data="Element">
+        @foreach (Element child in Children)
+        {
+            int? index = GetIndex(child);
+            var key = new { index, child };
+            <ElementNode @key="key" Index="index" Element="child" />
+        }
+    </TreeNode>
+}
+else
+{
+    <TreeNode Label="@Label" StartCollapsed="true" Data="Element" />
+}
+
+
+@code {
+    [Parameter]
+    public int? Index { get; set; }
+
+    [Parameter]
+    public Element? Element { get; set; }
+
+    protected override void OnInitialized()
+    {
+        string tagName = GetTagName(Element);
+        Label = (Index != null) ? $"[{Index}] {tagName}" : $"{tagName}";
+        IndexLookup = GetIndexLookup(Children);
+    }
+
+    private string? Label { get; set; }
+    private IDictionary<Element, int>? IndexLookup { get; set; }
+
+    private IEnumerable<Element> Children => (Element is CollectionElement collection)
+        ? collection.Elements
+        : Enumerable.Empty<Element>();
+
+    private int? GetIndex(Element child)
+    {
+        if (IndexLookup == null)
+            return null;
+
+        if (!IndexLookup.TryGetValue(child, out int index))
+            return null;
+
+        return index;
+    }
+
+    public static IDictionary<Element, int> GetIndexLookup(IEnumerable<Element> elements) => elements
+        .GroupBy(element => GetTagName(element))
+        .Where(grouping => grouping.Count() > 1)
+        .SelectMany(grouping => grouping.Select((Element, Index) => new { Element, Index }))
+        .ToDictionary(obj => obj.Element, obj => obj.Index);
+
+    public static string GetTagName(Element? element)
+    {
+        Guid tagID = element?.TagOfElement ?? default;
+        Tag? tag = Tag.GetTag(tagID);
+        return tag?.Name ?? $"{tagID}";
+    }
+}

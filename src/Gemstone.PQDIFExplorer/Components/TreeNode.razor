@@ -1,4 +1,6 @@
-﻿@using System.Diagnostics.CodeAnalysis
+﻿@implements IDisposable
+
+@using System.Diagnostics.CodeAnalysis
 
 <div class="treeview-node @SelectedClass @CollapseClass">
     <div class="treeview-node-body @BodyClass">
@@ -6,17 +8,23 @@
         <span class="treeview-node-icon" @ondblclick="@ToggleCollapsedAsync" />
         <span class="treeview-node-label" @onclick="@SelectAsync">@Label</span>
     </div>
+
     @if (ChildContent != null && !IsCollapsed)
     {
-        <div class="treeview-node-children">
-            @ChildContent
-        </div>
+        <CascadingValue Value="this">
+            <div class="treeview-node-children">
+                @ChildContent
+            </div>
+        </CascadingValue>
     }
 </div>
 
 @code {
     [CascadingParameter]
     public TreeView? TreeView { get; set; }
+
+    [CascadingParameter]
+    public TreeNode? Parent { get; set; }
 
     [Parameter]
     public string BodyClass { get; set; } = string.Empty;
@@ -77,6 +85,19 @@
 
     public async Task ToggleCollapsedAsync()
     {
+        if (!IsCollapsed)
+        {
+            // Change the selection before collapsing the node to
+            // prevent invalid state during the transition to collapsed
+            bool? changeSelection = TreeView?
+                .SelectedNode?
+                .GetAncestors()
+                .Contains(this);
+
+            if (changeSelection == true)
+                await SelectAsync();
+        }
+
         IsCollapsed = !IsCollapsed;
 
         TreeNodeCollapseEventArgs args = new TreeNodeCollapseEventArgs(TreeView, this);
@@ -91,6 +112,25 @@
             await (TreeView?.NodeExpanded.InvokeAsync(args) ?? Task.CompletedTask);
             await Expanded.InvokeAsync(args);
         }
+    }
+
+    public IEnumerable<TreeNode> GetAncestors()
+    {
+        TreeNode? ancestor = Parent;
+
+        while (ancestor != null)
+        {
+            yield return ancestor;
+            ancestor = ancestor.Parent;
+        }
+    }
+
+    public void Dispose()
+    {
+        // Nothing can be done about the potential for
+        // invalid state at this point; just deselect ASAP
+        if (TreeView?.SelectedNode == this)
+            _ = DeselectAsync();
     }
 
     // Only read StartCollapsed when the component is

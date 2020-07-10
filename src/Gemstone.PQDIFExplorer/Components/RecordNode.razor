@@ -1,0 +1,60 @@
+﻿@using Gemstone.PQDIF.Physical
+
+@if (Children.Any())
+{
+    <TreeNode Label="@Label" StartCollapsed="true" Data="Record">
+        @foreach (Element child in Children)
+        {
+            int? index = GetIndex(child);
+            var key = new { index, child };
+            <ElementNode @key="key" Index="index" Element="child" />
+        }
+    </TreeNode>
+}
+else
+{
+    <TreeNode Label="@Label" StartCollapsed="true" Data="Record" />
+}
+
+@code {
+    [Parameter]
+    public int? Index { get; set; }
+
+    [Parameter]
+    public Record? Record { get; set; }
+
+    protected override void OnInitialized()
+    {
+        RecordType type = Record?.Header.TypeOfRecord
+            ?? RecordType.Unknown;
+
+        Label = (Index != null)
+            ? $"[{Index}] {type}"
+            : $"{type}";
+
+        IndexLookup = ElementNode.GetIndexLookup(Children);
+    }
+
+    private string? Label { get; set; }
+    private IDictionary<Element, int>? IndexLookup { get; set; }
+
+    private IEnumerable<Element> Children =>
+        Record?.Body.Collection.Elements ?? Enumerable.Empty<Element>();
+
+    private int? GetIndex(Element child)
+    {
+        if (IndexLookup == null)
+            return null;
+
+        if (!IndexLookup.TryGetValue(child, out int index))
+            return null;
+
+        return index;
+    }
+
+    public static IDictionary<Record, int> GetIndexLookup(IEnumerable<Record> records) => records
+        .GroupBy(record => record.Header.TypeOfRecord)
+        .Where(grouping => grouping.Count() > 1)
+        .SelectMany(grouping => grouping.Select((Element, Index) => new { Element, Index }))
+        .ToDictionary(obj => obj.Element, obj => obj.Index);
+}
