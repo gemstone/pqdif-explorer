@@ -5,7 +5,7 @@
 <div class="treeview-node @SelectedClass @CollapseClass">
     <div class="treeview-node-body @BodyClass">
         <span class="treeview-node-bullet" @onclick="@ToggleCollapsedAsync">&nbsp;</span>
-        <span class="treeview-node-icon" @ondblclick="@ToggleCollapsedAsync" />
+        <span class="treeview-node-icon" @onclick="@SelectAsync" @ondblclick="@ToggleCollapsedAsync" />
         <span class="treeview-node-label" @onclick="@SelectAsync">@Label</span>
     </div>
 

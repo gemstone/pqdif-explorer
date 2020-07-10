@@ -2,7 +2,7 @@
 
 @if (Children.Any())
 {
-    <TreeNode Label="@Label" StartCollapsed="true" Data="Record">
+    <TreeNode Label="@Label" BodyClass="@BodyClass" StartCollapsed="true" Data="Record">
         @foreach (Element child in Children)
         {
             int? index = GetIndex(child);
@@ -13,7 +13,7 @@
 }
 else
 {
-    <TreeNode Label="@Label" StartCollapsed="true" Data="Record" />
+    <TreeNode Label="@Label" BodyClass="@BodyClass" StartCollapsed="true" Data="Record" />
 }
 
 @code {
@@ -32,10 +32,21 @@ else
             ? $"[{Index}] {type}"
             : $"{type}";
 
+        BodyClass = Record?.Header.TypeOfRecord switch
+        {
+            RecordType.Container => "pqdif-container-record",
+            RecordType.DataSource => "pqdif-datasource-record",
+            RecordType.MonitorSettings => "pqdif-monitorsettings-record",
+            RecordType.Observation => "pqdif-observation-record",
+            RecordType.Blank => "pqdif-blank-record",
+            _ => "pqdif-unknown-record"
+        };
+
         IndexLookup = ElementNode.GetIndexLookup(Children);
     }
 
     private string? Label { get; set; }
+    private string? BodyClass { get; set; }
     private IDictionary<Element, int>? IndexLookup { get; set; }
 
     private IEnumerable<Element> Children =>

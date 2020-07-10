@@ -3,7 +3,7 @@
 
 @if (Children.Any())
 {
-    <TreeNode Label="@Label" StartCollapsed="true" Data="Element">
+    <TreeNode Label="@Label" BodyClass="@BodyClass" StartCollapsed="true" Data="Element">
         @foreach (Element child in Children)
         {
             int? index = GetIndex(child);
@@ -14,7 +14,7 @@
 }
 else
 {
-    <TreeNode Label="@Label" StartCollapsed="true" Data="Element" />
+    <TreeNode Label="@Label" BodyClass="@BodyClass" StartCollapsed="true" Data="Element" />
 }
 
 
@@ -30,9 +30,19 @@ else
         string tagName = GetTagName(Element);
         Label = (Index != null) ? $"[{Index}] {tagName}" : $"{tagName}";
         IndexLookup = GetIndexLookup(Children);
+
+        BodyClass = Element switch
+        {
+            CollectionElement _ => "pqdif-collection-element",
+            VectorElement _ => "pqdif-vector-element",
+            ScalarElement _ => "pqdif-scalar-element",
+            ErrorElement _ => "pqdif-error-element",
+            _ => "pqdif-unknown-element"
+        };
     }
 
     private string? Label { get; set; }
+    private string? BodyClass { get; set; }
     private IDictionary<Element, int>? IndexLookup { get; set; }
 
     private IEnumerable<Element> Children => (Element is CollectionElement collection)
