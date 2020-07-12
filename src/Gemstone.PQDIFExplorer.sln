@@ -16,7 +16,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "img", "img", "{DFC219B4-2CF
 		..\docs\img\gemstone-wide-600.png = ..\docs\img\gemstone-wide-600.png
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PQDIFExplorer.Web", "Gemstone.PQDIFExplorer\PQDIFExplorer.Web.csproj", "{E0078D89-9FA4-4600-A71E-BCC99ACC42B0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PQDIFExplorer.Web", "PQDIFExplorer.Web\PQDIFExplorer.Web.csproj", "{E0078D89-9FA4-4600-A71E-BCC99ACC42B0}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PQDIFExplorer.RCL", "PQDIFExplorer.RCL\PQDIFExplorer.RCL.csproj", "{5A6A7AAB-2993-481F-A974-086429A37288}"
 EndProject
