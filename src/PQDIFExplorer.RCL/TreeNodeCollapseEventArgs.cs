@@ -1,5 +1,5 @@
 ﻿//******************************************************************************************************
-//  NodeSelectedEventArgs.cs - Gbtc
+//  TreeNodeEventArgs.cs - Gbtc
 //
 //  Copyright © 2020, Grid Protection Alliance.  All Rights Reserved.
 //
@@ -23,19 +23,17 @@
 
 using System;
 
-namespace PQDIFExplorer.Web.Components
+namespace PQDIFExplorer.RCL
 {
-    public class TreeNodeSelectedEventArgs : EventArgs
+    public class TreeNodeCollapseEventArgs : EventArgs
     {
-        public TreeView View { get; }
-        public TreeNode? Previous { get; }
-        public TreeNode? Selected { get; }
+        public TreeView? View { get; }
+        public TreeNode Node { get; }
 
-        public TreeNodeSelectedEventArgs(TreeView view, TreeNode? previous, TreeNode? selected)
+        public TreeNodeCollapseEventArgs(TreeView? view, TreeNode node)
         {
             View = view;
-            Previous = previous;
-            Selected = selected;
+            Node = node;
         }
     }
 }
