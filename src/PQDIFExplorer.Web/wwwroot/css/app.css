@@ -183,43 +183,43 @@ a.disabled {
     }
 
 .pqdif-container-record > .treeview-node-icon {
-    background-image: url("/icons/container.png");
+    background-image: url("pqdif-icons/container.png");
 }
 
 .pqdif-datasource-record > .treeview-node-icon {
-    background-image: url("/icons/datasource.png");
+    background-image: url("pqdif-icons/datasource.png");
 }
 
 .pqdif-monitorsettings-record > .treeview-node-icon {
-    background-image: url("/icons/monitorsettings.png");
+    background-image: url("pqdif-icons/monitorsettings.png");
 }
 
 .pqdif-observation-record > .treeview-node-icon {
-    background-image: url("/icons/observation.png");
+    background-image: url("pqdif-icons/observation.png");
 }
 
 .pqdif-unknown-record > .treeview-node-icon {
-    background-image: url("/icons/unknown.png");
+    background-image: url("pqdif-icons/unknown.png");
 }
 
 .pqdif-collection-element > .treeview-node-icon {
-    background-image: url("/icons/collection.png");
+    background-image: url("pqdif-icons/collection.png");
 }
 
 .pqdif-vector-element > .treeview-node-icon {
-    background-image: url("/icons/vector.png");
+    background-image: url("pqdif-icons/vector.png");
 }
 
 .pqdif-scalar-element > .treeview-node-icon {
-    background-image: url("/icons/scalar.png");
+    background-image: url("pqdif-icons/scalar.png");
 }
 
 .pqdif-unknown-element > .treeview-node-icon {
-    background-image: url("/icons/unknown.png");
+    background-image: url("pqdif-icons/unknown.png");
 }
 
 .pqdif-error-element > .treeview-node-icon {
-    background-image: url("/icons/error.png");
+    background-image: url("pqdif-icons/error.png");
 }
 
 .navbar-toggler {
