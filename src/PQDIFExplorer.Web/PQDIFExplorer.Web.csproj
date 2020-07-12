@@ -8,10 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="wwwroot\Logo.png" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Gemstone.Numeric" Version="1.0.51" />
     <PackageReference Include="Gemstone.PQDIF" Version="1.0.51" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="3.2.0" />
@@ -58,8 +54,10 @@
   <Target Name="UpdateBasePath" BeforeTargets="BeforeBuild" Condition="'$(BasePath)' != ''">
     <ReplaceFileText InputFileName="wwwroot/index.html" OutputFileName="$(IntermediateOutputPath)/wwwroot/index.html" MatchExpression="&lt;base href=&quot;/&quot; /&gt;" ReplacementText="&lt;base href=&quot;$(BasePath)&quot; /&gt;" />
     <ItemGroup>
-      <Content Remove="wwwroot/index.html" />
-      <Content Include="$(IntermediateOutputPath)/wwwroot/index.html" Link="wwwroot\index.html" />
+      <Content Remove="wwwroot\index.html" />
+    </ItemGroup>
+    <ItemGroup>
+      <Content Include="$(IntermediateOutputPath)\wwwroot\index.html" Link="wwwroot\index.html" />
     </ItemGroup>
   </Target>
 
