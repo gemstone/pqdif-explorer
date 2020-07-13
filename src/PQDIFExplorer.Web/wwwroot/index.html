@@ -30,9 +30,6 @@
         <a class="dismiss">🗙</a>
     </div>
 
-    <script src="_framework/blazor.webassembly.js"></script>
-    <script src="pqdif-explorer.js"></script>
-
     <script>
         var wasmSupported = (function () {
             try {
@@ -52,6 +49,19 @@
             return false;
         })();
 
+        if (!wasmSupported) {
+            var appElement = document.getElementsByTagName("app")[0];
+            appElement.style.display = "none";
+
+            var notSupportedElement = document.getElementById("blazor-not-supported");
+            notSupportedElement.style.display = "block";
+        }
+    </script>
+
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script src="pqdif-explorer.js"></script>
+
+    <script>
         if (wasmSupported) {
             (async function () {
                 var registration = await navigator.serviceWorker.register('service-worker.js');
@@ -66,12 +76,6 @@
                 if (!navigator.serviceWorker.controller)
                     window.location.reload();
             })();
-        } else {
-            var appElement = document.getElementsByTagName("app")[0];
-            appElement.style.display = "none";
-
-            var notSupportedElement = document.getElementById("blazor-not-supported");
-            notSupportedElement.style.display = "initial";
         }
     </script>
 </body>
