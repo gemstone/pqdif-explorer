@@ -53,9 +53,12 @@
         })();
 
         if (wasmSupported) {
-            navigator.serviceWorker.register('service-worker.js');
-
             (async function () {
+                var registration = await navigator.serviceWorker.register('service-worker.js');
+
+                if (!window.location.href.startsWith(registration.scope))
+                    window.location.href = registration.scope;
+
                 await navigator.serviceWorker.ready;
 
                 // The PQDIF files are cached by the service worker
