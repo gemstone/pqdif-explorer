@@ -51,6 +51,7 @@
             Dispose();
     }
 
+    private DotNetObjectReference<App>? AppReference { get; set; }
     private ElementReference AppContainer { get; set; }
     private string? DropCachingRegistration { get; set; }
     public CancellationToken LoadToken { get; set; }
@@ -71,8 +72,9 @@
             return;
 
         const string RegisterFunctionName = "pqdif.registerDropHandler";
-        DotNetObjectReference<App> appReference = DotNetObjectReference.Create(this);
-        var callback = new { Instance = appReference, MethodName = nameof(HandleDropAsync) };
+        AppReference = DotNetObjectReference.Create(this);
+
+        var callback = new { Instance = AppReference, MethodName = nameof(HandleDropAsync) };
         DropCachingRegistration = await JSRuntime.InvokeAsync<string>(RegisterFunctionName, AppContainer, callback);
     }
 
@@ -102,6 +104,11 @@
             return;
 
         const string UnregisterFunctionName = "pqdif.unregisterDropHandler";
-        JSRuntime.InvokeVoidAsync(UnregisterFunctionName);
+
+        Task unregisterTask = JSRuntime
+            .InvokeVoidAsync(UnregisterFunctionName)
+            .AsTask();
+
+        unregisterTask.ContinueWith(_ => AppReference?.Dispose());
     }
 }
