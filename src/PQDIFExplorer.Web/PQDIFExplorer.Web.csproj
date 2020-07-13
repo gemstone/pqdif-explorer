@@ -52,7 +52,7 @@
   </UsingTask>
 
   <Target Name="UpdateBasePath" BeforeTargets="BeforeBuild" Condition="'$(BasePath)' != ''">
-    <ReplaceFileText InputFileName="wwwroot/index.html" OutputFileName="$(IntermediateOutputPath)/wwwroot/index.html" MatchExpression="&lt;base href=&quot;/&quot; /&gt;" ReplacementText="&lt;base href=&quot;$(BasePath)&quot; /&gt;" />
+    <ReplaceFileText InputFileName="wwwroot\index.html" OutputFileName="$(IntermediateOutputPath)\wwwroot\index.html" MatchExpression="&lt;base href=&quot;/&quot; /&gt;" ReplacementText="&lt;base href=&quot;$(BasePath)&quot; /&gt;" />
     <ItemGroup>
       <Content Remove="wwwroot\index.html" />
     </ItemGroup>
