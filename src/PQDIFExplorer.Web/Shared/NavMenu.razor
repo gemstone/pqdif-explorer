@@ -57,19 +57,14 @@
     public void Dispose() =>
         Cache.Updated -= HandleCacheUpdated;
 
-    private void HandleCacheUpdated(object sender, EventArgs args)
+    private async void HandleCacheUpdated(object sender, EventArgs args)
     {
-        Task<List<FileKeyData>> retrieveTask = Cache
+        FileKeys = await Cache
             .RetrieveKeysAsync()
             .OrderBy(fileKey => fileKey.Name)
-            .ToListAsync()
-            .AsTask();
+            .ToListAsync();
 
-        retrieveTask.ContinueWith(task =>
-        {
-            FileKeys = task.Result;
-            StateHasChanged();
-        });
+        StateHasChanged();
     }
 
     private void ToggleNavMenu() =>

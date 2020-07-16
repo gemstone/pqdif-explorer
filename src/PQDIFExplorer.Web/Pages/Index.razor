@@ -68,18 +68,14 @@
         Cache.Updated -= HandleCacheUpdated;
     }
 
-    private void HandleCacheUpdated(object sender, EventArgs args)
+    private async void HandleCacheUpdated(object sender, EventArgs args)
     {
-        Task<List<FileKeyData>> retrieveTask = Cache
+        FileKeys = await Cache
             .RetrieveKeysAsync()
-            .ToListAsync()
-            .AsTask();
+            .OrderBy(fileKey => fileKey.Name)
+            .ToListAsync();
 
-        retrieveTask.ContinueWith(task =>
-        {
-            FileKeys = task.Result;
-            StateHasChanged();
-        });
+        StateHasChanged();
     }
 
     private async Task HandleFileAsync(ChangeEventArgs args)
