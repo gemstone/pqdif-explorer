@@ -3,8 +3,9 @@
 
 @using System.Linq
 @using System.Threading
+@using Gemstone.Web.Razor.Elements 
 
-@inject IJSRuntime JSRuntime
+@inject ElementFactory ElementFactory 
 @inject PQDIFFileCache Cache
 @inject NavigationManager NavigationManager
 
@@ -102,6 +103,7 @@
         if (Loading)
             return;
 
-        await JSRuntime.InvokeVoidAsync("pqdif.triggerClick", FileInput);
+        Element element = ElementFactory.GetElement(FileInput);
+        await element.ClickAsync();
     }
 }

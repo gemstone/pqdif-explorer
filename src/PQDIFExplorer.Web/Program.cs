@@ -24,6 +24,8 @@
 using System;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Gemstone.Web.Razor.Elements;
+using Gemstone.Web.Razor.ServiceWorkers;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -37,6 +39,8 @@ namespace PQDIFExplorer.Web
             builder.RootComponents.Add<App>("app");
             builder.Services.AddTransient(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
             builder.Services.AddSingleton<PQDIFFileCache>();
+            builder.Services.AddServiceWorkers();
+            builder.Services.AddElements();
             await builder.Build().RunAsync();
         }
     }

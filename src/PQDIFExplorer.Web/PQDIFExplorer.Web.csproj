@@ -8,9 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Gemstone.Numeric" Version="1.0.53" />
-    <PackageReference Include="Gemstone.PQDIF" Version="1.0.53" />
-    <PackageReference Include="Gemstone.Web.Razor" Version="1.0.53" />
+    <PackageReference Include="Gemstone.Numeric" Version="1.0.54" />
+    <PackageReference Include="Gemstone.PQDIF" Version="1.0.54" />
+    <PackageReference Include="Gemstone.Web.Razor" Version="1.0.54" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="3.2.1" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Build" Version="3.2.1" PrivateAssets="all" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="3.2.1" PrivateAssets="all" />

@@ -33,6 +33,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gemstone.PQDIF.Logical;
 using Gemstone.PQDIF.Physical;
+using Gemstone.Web.Razor.ServiceWorkers;
 using Microsoft.JSInterop;
 
 namespace PQDIFExplorer.Web
@@ -113,6 +114,7 @@ namespace PQDIFExplorer.Web
     public class PQDIFFileCache
     {
         private HttpClient HttpClient { get; }
+        private IServiceWorkerContainer ServiceWorkerContainer { get; }
         private IJSRuntime JSRuntime { get; }
 
         // Client-side Blazor is single-threaded, so no need for ConcurrentDictionary
@@ -121,16 +123,17 @@ namespace PQDIFExplorer.Web
         // Allow components to react to cache updates
         public event EventHandler? Updated;
 
-        public PQDIFFileCache(HttpClient httpClient, IJSRuntime jsRuntime)
+        public PQDIFFileCache(HttpClient httpClient, IServiceWorkerContainer serviceWorkerContainer, IJSRuntime jsRuntime)
         {
             HttpClient = httpClient;
+            ServiceWorkerContainer = serviceWorkerContainer;
             JSRuntime = jsRuntime;
             Lookup = new Dictionary<string, PQDIFFile>();
         }
 
         public async IAsyncEnumerable<FileKeyData> RetrieveKeysAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            await WhenWorkerIsRegistered();
+            await ServiceWorkerContainer.WhenReady;
 
             using HttpResponseMessage response = await HttpClient.GetAsync("/PQDIF/List", cancellationToken);
 
@@ -157,7 +160,7 @@ namespace PQDIFExplorer.Web
 
         public async Task<PQDIFFile?> RetrieveAsync(string fileKey, CancellationToken cancellationToken = default)
         {
-            await WhenWorkerIsRegistered();
+            await ServiceWorkerContainer.WhenReady;
 
             if (Lookup.TryGetValue(fileKey, out PQDIFFile cachedFile))
                 return cachedFile;
@@ -185,7 +188,7 @@ namespace PQDIFExplorer.Web
 
         public async Task<FileKeyData[]> SaveAsync(object fileSource, CancellationToken cancellationToken = default)
         {
-            await WhenWorkerIsRegistered();
+            await ServiceWorkerContainer.WhenReady;
             const string CacheFunction = "pqdif.cacheFilesAsync";
             FileKeyData[] fileKeyData = await JSRuntime.InvokeAsync<FileKeyData[]>(CacheFunction, cancellationToken, fileSource);
             OnCacheUpdated();
@@ -194,7 +197,7 @@ namespace PQDIFExplorer.Web
 
         public async Task PurgeAsync(string fileKey, CancellationToken cancellationToken = default)
         {
-            await WhenWorkerIsRegistered();
+            await ServiceWorkerContainer.WhenReady;
 
             Lookup.Remove(fileKey);
 
@@ -207,18 +210,6 @@ namespace PQDIFExplorer.Web
                 OnCacheUpdated();
             else if (response.StatusCode != System.Net.HttpStatusCode.NotFound)
                 throw new Exception($"Invalid response purging PQDIF file: {response.ReasonPhrase} ({response.StatusCode})");
-        }
-
-        private async Task WhenWorkerIsRegistered()
-        {
-            Task serviceWorkerTask = JSRuntime
-                .InvokeVoidAsync("pqdif.workerIsReady")
-                .AsTask();
-
-            await Task.WhenAny(Task.Delay(5000), serviceWorkerTask);
-
-            if (!serviceWorkerTask.IsCompleted)
-                throw new TaskCanceledException("Timeout waiting for service worker registration");
         }
 
         private void OnCacheUpdated() =>

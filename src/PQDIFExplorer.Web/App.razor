@@ -1,7 +1,7 @@
 @implements IDisposable
 
 @using System.Threading
-@using Gemstone.PQDIF.Physical
+@using Gemstone.Web.Razor.Callbacks
 
 @inject IJSRuntime JSRuntime
 @inject PQDIFFileCache Cache
@@ -51,8 +51,8 @@
             Dispose();
     }
 
-    private DotNetObjectReference<App>? AppReference { get; set; }
     private ElementReference AppContainer { get; set; }
+    private CallbackDefinition? Callback { get; set; }
     private string? DropCachingRegistration { get; set; }
     public CancellationToken LoadToken { get; set; }
 
@@ -72,10 +72,8 @@
             return;
 
         const string RegisterFunctionName = "pqdif.registerDropHandler";
-        AppReference = DotNetObjectReference.Create(this);
-
-        var callback = new { Instance = AppReference, MethodName = nameof(HandleDropAsync) };
-        DropCachingRegistration = await JSRuntime.InvokeAsync<string>(RegisterFunctionName, AppContainer, callback);
+        Callback = CallbackDefinition.From(HandleDropAsync);
+        DropCachingRegistration = await JSRuntime.InvokeAsync<string>(RegisterFunctionName, AppContainer, Callback);
     }
 
     [JSInvokable]
@@ -109,6 +107,6 @@
             .InvokeVoidAsync(UnregisterFunctionName)
             .AsTask();
 
-        unregisterTask.ContinueWith(_ => AppReference?.Dispose());
+        unregisterTask.ContinueWith(_ => Callback?.Dispose());
     }
 }
