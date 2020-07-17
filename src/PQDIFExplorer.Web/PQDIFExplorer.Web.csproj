@@ -7,6 +7,10 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <OutputPath>..\..\build\$(Configuration)</OutputPath>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Gemstone.Numeric" Version="1.0.54" />
     <PackageReference Include="Gemstone.PQDIF" Version="1.0.54" />
