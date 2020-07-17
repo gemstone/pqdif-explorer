@@ -122,6 +122,14 @@ a.disabled {
     color: khaki;
 }
 
+.download-file {
+    color: darkgray;
+}
+
+    .download-file:hover {
+        color: blue;
+    }
+
 .close-file {
     color: darkgray;
 }

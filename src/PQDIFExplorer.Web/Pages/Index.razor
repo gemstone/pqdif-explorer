@@ -15,8 +15,11 @@
         @foreach (FileKeyData fileKey in FileKeys)
         {
             <div @key="fileKey.Key">
-                <a href="@($"PQDIF/View/{fileKey.Key}")">
+                <a href="@($"PQDIF/View/{fileKey.Key}")" title="View">
                     <img src="explorer.ico" width="20" height="20" /> @fileKey.Name
+                </a>
+                <a class="download-file" href="@($"PQDIF/Retrieve/{fileKey.Key}")">
+                    <span class="oi oi-data-transfer-download" title="Download" />
                 </a>
                 <a class="close-file" href="" @onclick="@(async _ => await Cache.PurgeAsync(fileKey.Key))" @onclick:preventDefault="true">
                     <span class="oi oi-x" title="Close" />

@@ -78,7 +78,13 @@
                         break;
                 }
 
-                var cacheResponse = new Response(file);
+                var cacheHeaders = new Headers({
+                    "Content-Length": file.size,
+                    "Content-Type": "application/octet-stream",
+                    "Content-Disposition": "attachment; filename=" + file.name
+                });
+
+                var cacheResponse = new Response(file, { headers: cacheHeaders });
                 await cache.put(cacheRequest, cacheResponse);
                 return { key: fileKey, name: file.name };
             });
