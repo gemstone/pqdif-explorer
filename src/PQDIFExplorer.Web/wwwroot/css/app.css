@@ -314,3 +314,9 @@ a.disabled {
         display: block;
     }
 }
+
+.oi-external-link-after:after {
+    vertical-align: text-top;
+    font-size: .5em;
+    content: "\e064";
+}
