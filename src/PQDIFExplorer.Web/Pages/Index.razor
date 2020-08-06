@@ -12,18 +12,34 @@
 <div>
     @if (FileKeys.Any())
     {
-        @foreach (FileKeyData fileKey in FileKeys)
+        @foreach (PQDIFKeyData fileKey in FileKeys)
         {
             <div @key="fileKey.Key">
                 <a href="@($"PQDIF/View/{fileKey.Key}")" title="View">
                     <img src="explorer.ico" width="20" height="20" /> @fileKey.Name
                 </a>
-                <a class="download-file" href="@($"PQDIF/Retrieve/{fileKey.Key}")">
-                    <span class="oi oi-data-transfer-download" title="Download" />
-                </a>
-                <a class="close-file" href="" @onclick="@(async _ => await Cache.PurgeAsync(fileKey.Key))" @onclick:preventDefault="true">
-                    <span class="oi oi-x" title="Close" />
-                </a>
+                @if (fileKey.HasUnsavedChanges)
+                {
+                    <a class="commit-file" href="" title="Commit edits" @onclick="@(async _ => await Cache.CommitEditsAsync(fileKey.Key))" @onclick:preventDefault="true">
+                        <span class="oi oi-camera-slr" />
+                        <span class="accessibility-text">Commit edits</span>
+                    </a>
+                    <a class="reload-file" href="" title="Reload (discard edits)" @onclick="@(() => Cache.FlushParsedData(fileKey.Key))" @onclick:preventDefault="true">
+                        <span class="oi oi-reload" />
+                        <span class="accessibility-text">Reload (discard edits)</span>
+                    </a>
+                }
+                else
+                {
+                    <a class="download-file" href="@($"PQDIF/Retrieve/{fileKey.Key}")" title="Download">
+                        <span class="oi oi-data-transfer-download" />
+                        <span class="accessibility-text">Download</span>
+                    </a>
+                    <a class="close-file" href="" title="Close" @onclick="@(async _ => await Cache.PurgeAsync(fileKey.Key))" @onclick:preventDefault="true">
+                        <span class="oi oi-x" />
+                        <span class="accessibility-text">Close</span>
+                    </a>
+                }
             </div>
         }
     }
@@ -43,8 +59,8 @@
 
     private ElementReference FileInput { get; set; }
 
-    private IEnumerable<FileKeyData> FileKeys { get; set; } =
-        Enumerable.Empty<FileKeyData>();
+    private IEnumerable<PQDIFKeyData> FileKeys { get; set; } =
+        Enumerable.Empty<PQDIFKeyData>();
 
     private CancellationToken LoadToken =>
         App?.LoadToken ?? default;
@@ -88,12 +104,12 @@
         if (loadingHandle == null)
             return;
 
-        FileKeyData[] fileKeys = await Cache.SaveAsync(FileInput, LoadToken);
+        PQDIFKeyData[] fileKeys = await Cache.SaveAsync(FileInput, LoadToken);
 
         if (!fileKeys.Any())
             return;
 
-        FileKeyData firstKey = fileKeys[0];
+        PQDIFKeyData firstKey = fileKeys[0];
         NavigationManager.NavigateTo($"PQDIF/View/{firstKey.Key}");
     }
 

@@ -38,18 +38,19 @@ using Microsoft.JSInterop;
 
 namespace PQDIFExplorer.Web
 {
-    public class FileKeyData
+    public class PQDIFKeyData
     {
         public string Key { get; set; }
         public string Name { get; set; }
+        public bool HasUnsavedChanges { get; set; }
 
-        public FileKeyData()
+        public PQDIFKeyData()
         {
             Key = string.Empty;
             Name = string.Empty;
         }
 
-        public FileKeyData(string key)
+        public PQDIFKeyData(string key)
         {
             Key = key;
 
@@ -61,7 +62,7 @@ namespace PQDIFExplorer.Web
             Name = nameProperty.GetString();
         }
 
-        public FileKeyData(string key, string name)
+        public PQDIFKeyData(string key, string name)
         {
             Key = key;
             Name = name;
@@ -74,11 +75,25 @@ namespace PQDIFExplorer.Web
         public string Name { get; }
         public IEnumerable<Record> Records { get; }
 
-        public PQDIFFile(string key, string name, IEnumerable<Record> records)
+        public bool HasUnsavedChanges
+        {
+            get => _HasUnsavedChanges;
+            set
+            {
+                _HasUnsavedChanges = value;
+                OnUpdate?.Invoke();
+            }
+        }
+
+        private Action OnUpdate { get; }
+        private bool _HasUnsavedChanges { get; set; }
+
+        public PQDIFFile(string key, string name, IEnumerable<Record> records, Action onUpdate)
         {
             Key = key;
             Name = name;
             Records = records;
+            OnUpdate = onUpdate;
         }
 
         public static async IAsyncEnumerable<Record> ParseAsync(Stream stream, [EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -131,7 +146,7 @@ namespace PQDIFExplorer.Web
             Lookup = new Dictionary<string, PQDIFFile>();
         }
 
-        public async IAsyncEnumerable<FileKeyData> RetrieveKeysAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public async IAsyncEnumerable<PQDIFKeyData> RetrieveKeysAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             await ServiceWorkerContainer.WhenReady;
 
@@ -154,7 +169,12 @@ namespace PQDIFExplorer.Web
                 JsonElement nameProperty = element.GetProperty("name");
                 string name = nameProperty.GetString();
 
-                yield return new FileKeyData(key, name);
+                PQDIFKeyData keyData = new PQDIFKeyData(key, name);
+
+                if (Lookup.TryGetValue(key, out PQDIFFile file))
+                    keyData.HasUnsavedChanges = file.HasUnsavedChanges;
+
+                yield return keyData;
             }
         }
 
@@ -180,17 +200,17 @@ namespace PQDIFExplorer.Web
                 .ParseAsync(stream, cancellationToken)
                 .ToListAsync();
 
-            FileKeyData keyData = new FileKeyData(fileKey);
-            PQDIFFile file = new PQDIFFile(fileKey, keyData.Name, records);
+            PQDIFKeyData keyData = new PQDIFKeyData(fileKey);
+            PQDIFFile file = new PQDIFFile(fileKey, keyData.Name, records, OnCacheUpdated);
             Lookup[fileKey] = file;
             return file;
         }
 
-        public async Task<FileKeyData[]> SaveAsync(object fileSource, CancellationToken cancellationToken = default)
+        public async Task<PQDIFKeyData[]> SaveAsync(object fileSource, CancellationToken cancellationToken = default)
         {
             await ServiceWorkerContainer.WhenReady;
             const string CacheFunction = "pqdif.cacheFilesAsync";
-            FileKeyData[] fileKeyData = await JSRuntime.InvokeAsync<FileKeyData[]>(CacheFunction, cancellationToken, fileSource);
+            PQDIFKeyData[] fileKeyData = await JSRuntime.InvokeAsync<PQDIFKeyData[]>(CacheFunction, cancellationToken, fileSource);
             OnCacheUpdated();
             return fileKeyData;
         }
@@ -210,6 +230,46 @@ namespace PQDIFExplorer.Web
                 OnCacheUpdated();
             else if (response.StatusCode != System.Net.HttpStatusCode.NotFound)
                 throw new Exception($"Invalid response purging PQDIF file: {response.ReasonPhrase} ({response.StatusCode})");
+        }
+
+        public async Task CommitEditsAsync(string fileKey, CancellationToken cancellationToken = default)
+        {
+            if (!Lookup.TryGetValue(fileKey, out PQDIFFile file))
+                return;
+
+            await ServiceWorkerContainer.WhenReady;
+            cancellationToken.ThrowIfCancellationRequested();
+
+            using MemoryStream stream = new MemoryStream();
+            using PhysicalWriter writer = new PhysicalWriter(stream);
+            List<Record> records = file.Records.ToList();
+            Record lastRecord = records.Last();
+
+            foreach (Record record in records)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                bool isLast = (record == lastRecord);
+                await writer.WriteRecordAsync(record, isLast);
+            }
+
+            stream.Position = 0;
+
+            PQDIFKeyData keyData = new PQDIFKeyData(fileKey);
+            HttpContent keyContent = new StringContent(fileKey);
+            HttpContent streamContent = new StreamContent(stream);
+            MultipartFormDataContent requestContent = new MultipartFormDataContent();
+            requestContent.Add(keyContent, "pqdifKey");
+            requestContent.Add(streamContent, "pqdifFile", keyData.Name);
+            await HttpClient.PostAsync("/PQDIF/Cache", requestContent);
+
+            file.HasUnsavedChanges = false;
+            Updated?.Invoke(this, EventArgs.Empty);
+        }
+
+        public void FlushParsedData(string fileKey)
+        {
+            Lookup.Remove(fileKey);
+            Updated?.Invoke(this, EventArgs.Empty);
         }
 
         private void OnCacheUpdated() =>

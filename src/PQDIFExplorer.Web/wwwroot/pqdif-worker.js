@@ -63,6 +63,11 @@
         if (request.method === "POST") {
             var formData = await request.formData();
             var pqdifFiles = formData.getAll("pqdifFile");
+
+            if (formData.has("pqdifKey") && pqdifFiles.length > 1) {
+                return new Response(null, { status: 400 });
+            }
+
             var cache = await caches.open(pqdifCacheName);
 
             var promises = pqdifFiles.map(async file => {
@@ -70,8 +75,12 @@
                 var cacheRequest;
 
                 for (; ;) {
-                    fileKey = generateFileKey(file.name);
+                    fileKey = formData.get("pqdifKey") || generateFileKey(file.name);
                     cacheRequest = new Request("/PQDIF/Retrieve/" + fileKey);
+
+                    if (formData.has("pqdifKey"))
+                        break;
+
                     var cacheMatch = await cache.match(cacheRequest);
 
                     if (!cacheMatch)

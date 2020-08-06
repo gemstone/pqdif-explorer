@@ -87,12 +87,12 @@
         if (loadingHandle == null)
             return;
 
-        FileKeyData[] fileKeys = await Cache.SaveAsync(DropCachingRegistration, LoadToken);
+        PQDIFKeyData[] fileKeys = await Cache.SaveAsync(DropCachingRegistration, LoadToken);
 
         if (!fileKeys.Any())
             return;
 
-        FileKeyData firstKey = fileKeys[0];
+        PQDIFKeyData firstKey = fileKeys[0];
         NavigationManager.NavigateTo($"PQDIF/View/{firstKey.Key}");
     }
 

@@ -1,0 +1,150 @@
+﻿@using System.Runtime.CompilerServices
+@using Gemstone.PQDIF
+@using Gemstone.PQDIF.Physical
+
+<div>
+    @if (BitFields.Any())
+    {
+        foreach (Identifier bitField in BitFields)
+        {
+            int hashCode = RuntimeHelpers.GetHashCode(bitField);
+            string id = $"bitfield-{hashCode:X8}";
+            uint value = Convert.ToUInt32(bitField.Value, 16);
+            bool isChecked = (BitFieldValue & value) != 0u;
+
+            <div @key="bitField">
+                <input id="@id" type="checkbox" checked="@isChecked" @onchange="@(_ => BitFieldValue ^= value)" />
+                <label class="m-0" for="@id">@bitField.Name</label>
+            </div>
+        }
+    }
+    else if (Identifiers.Any())
+    {
+        <div>
+            <select @bind="Identifier">
+                @foreach (Identifier identifier in Identifiers)
+                {
+                    bool isSelected = Identifier == identifier.Value;
+                    <option @key="identifier" value="@identifier.Value" selected="@isSelected">@identifier.Name</option>
+                }
+            </select>
+        </div>
+    }
+    else
+    {
+        <div>
+            <input class="w-100" type="text" @bind="Value" @onkeyup="ApplyEditOnEnterAsync" />
+        </div>
+    }
+
+    <div>
+        <button class="pqdif-apply-changes" type="button" @onclick="ApplyEditAsync"><span class="oi oi-check" />&nbsp;Apply</button>
+        <button class="pqdif-revert-changes" type="button" @onclick="RevertEdit"><span class="oi oi-x" />&nbsp;Revert</button>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter]
+    public PQDIFFile? File { get; set; }
+
+    [Parameter]
+    public Element? Element { get; set; }
+
+    [Parameter]
+    public EventCallback Edited { get; set; }
+
+    private IEnumerable<Identifier> Identifiers { get; set; } =
+        Enumerable.Empty<Identifier>();
+
+    private IEnumerable<Identifier> BitFields { get; set; } =
+        Enumerable.Empty<Identifier>();
+
+    private uint BitFieldValue { get; set; }
+    private string? Identifier { get; set; }
+    private string? Value { get; set; }
+
+    protected override void OnInitialized() =>
+        Initialize();
+
+    private void Initialize()
+    {
+        Tag? tag = Tag.GetTag(Element?.TagOfElement ?? default);
+        Identifiers = tag?.ValidIdentifiers ?? Enumerable.Empty<Identifier>();
+        BitFields = Identifiers.Where(id => id.Value.StartsWith("0x"));
+
+        if (BitFields.Any())
+        {
+            ScalarElement? element = (ScalarElement?)Element;
+            BitFieldValue = Convert.ToUInt32(element?.Get());
+        }
+        else if (Identifiers.Any())
+        {
+            ScalarElement? element = (ScalarElement?)Element;
+            Identifier = element?.Get().ToString();
+        }
+        else
+        {
+            Value = Element?.ValueAsString();
+        }
+    }
+
+    private async Task ApplyEditAsync()
+    {
+        if (BitFields.Any())
+        {
+            ScalarElement? element = (ScalarElement?)Element;
+            uint bitFieldValue = Convert.ToUInt32(element?.Get());
+
+            if (BitFieldValue == bitFieldValue)
+                return;
+
+            element?.Set(bitFieldValue);
+        }
+        else if (Identifiers.Any())
+        {
+            ScalarElement? element = (ScalarElement?)Element;
+            string? identifier = element?.Get().ToString();
+
+            if (Identifier == null || Identifier == identifier)
+                return;
+
+            Element?.SetValue(Identifier);
+        }
+        else
+        {
+            if (Value == null)
+                return;
+
+            try
+            {
+                string? value = Element?.ValueAsString();
+
+                if (Value == value)
+                    return;
+
+                Element?.SetValue(Value);
+            }
+            catch
+            {
+                Element?.SetValue(Value);
+            }
+        }
+
+        if (File != null)
+            File.HasUnsavedChanges = true;
+
+        await Edited.InvokeAsync(EventArgs.Empty);
+    }
+
+    private void RevertEdit()
+    {
+        Initialize();
+        StateHasChanged();
+    }
+
+    private async Task ApplyEditOnEnterAsync(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+            await ApplyEditAsync();
+    }
+}

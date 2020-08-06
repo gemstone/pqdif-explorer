@@ -71,6 +71,10 @@ a, .btn-link {
         top: -2px;
     }
 
+    .sidebar .oi.nav-pencil {
+        font-size: 0.6rem;
+    }
+
     .sidebar .nav-item {
         font-size: 0.9rem;
         padding-bottom: 0.5rem;
@@ -118,6 +122,14 @@ a.disabled {
     cursor: wait;
 }
 
+span.accessibility-text {
+    height: 1px;
+    width: 1px;
+    position: absolute;
+    overflow: hidden;
+    top: -10px;
+}
+
 .open-file > .oi-folder {
     color: khaki;
 }
@@ -136,6 +148,22 @@ a.disabled {
 
     .close-file:hover {
         color: red;
+    }
+
+.commit-file {
+    color: darkgray;
+}
+
+    .commit-file:hover {
+        color: blue;
+    }
+
+.reload-file {
+    color: darkgray;
+}
+
+    .reload-file:hover {
+        color: blue;
     }
 
 .pqdif-file-viewer {
@@ -228,6 +256,29 @@ a.disabled {
 
 .pqdif-error-element > .treeview-node-icon {
     background-image: url("pqdif-icons/error.png");
+}
+
+.pqdif-edit-btn {
+    border: solid gray 1px;
+    border-radius: 3px 4px;
+    background-color: lightgray;
+    padding: .1em;
+}
+
+.pqdif-edit-btn:hover {
+    text-decoration: none;
+}
+
+.pqdif-apply-changes {
+    border-color: green;
+}
+
+    .pqdif-apply-changes > .oi {
+        color: green;
+    }
+
+.pqdif-revert-changes > .oi {
+    color: red;
 }
 
 .navbar-toggler {

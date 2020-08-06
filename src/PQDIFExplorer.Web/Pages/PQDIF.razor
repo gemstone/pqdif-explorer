@@ -20,9 +20,11 @@
         </TreeView>
     </div>
 
-    <div class="detail-pane">
-        @Detail
-    </div>
+    <CascadingValue Value="File">
+        <div class="detail-pane">
+            @Detail
+        </div>
+    </CascadingValue>
 </div>
 
 @code {

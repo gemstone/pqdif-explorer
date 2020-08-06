@@ -18,15 +18,20 @@
     <ul class="nav flex-column flex-nowrap">
         <li class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="oi oi-home" aria-hidden="true"></span> Home
+                <span class="oi oi-home" aria-hidden="true" /> Home
             </NavLink>
         </li>
 
-        @foreach (FileKeyData fileKey in FileKeys)
+        @foreach (PQDIFKeyData fileKey in FileKeys)
         {
             <li @key="fileKey" class="nav-item px-3" style="white-space: nowrap">
                 <NavLink class="nav-link" href="@($"PQDIF/View/{fileKey.Key}")" title="@fileKey.Name">
-                    <span class="oi oi-file" aria-hidden="true"></span>
+                    @if (fileKey.HasUnsavedChanges)
+                    {
+                        <span class="oi oi-pencil nav-pencil" aria-hidden="true" />
+                    }
+
+                    <span class="oi oi-file" aria-hidden="true" />
                     <span class="d-inline-block text-overflow-ellipsis">@fileKey.Name</span>
                 </NavLink>
             </li>
@@ -40,8 +45,8 @@
     private string? NavMenuCssClass =>
         CollapseNavMenu ? "collapse" : null;
 
-    private IEnumerable<FileKeyData> FileKeys { get; set; } =
-        Enumerable.Empty<FileKeyData>();
+    private IEnumerable<PQDIFKeyData> FileKeys { get; set; } =
+        Enumerable.Empty<PQDIFKeyData>();
 
     protected override async Task OnInitializedAsync()
     {
