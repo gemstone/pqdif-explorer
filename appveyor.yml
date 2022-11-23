@@ -1,4 +1,4 @@
-version: AppVeyor Gemstone GemTem Build {build}
+version: AppVeyor Gemstone PQDIF Explorer Build {build}
 branches:
   only:
   - master
