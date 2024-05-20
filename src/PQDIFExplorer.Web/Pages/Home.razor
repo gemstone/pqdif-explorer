@@ -3,9 +3,9 @@
 
 @using System.Linq
 @using System.Threading
-@using Gemstone.Web.Razor.Elements 
+@using Gemstone.Web.Razor.Elements
 
-@inject ElementFactory ElementFactory 
+@inject ElementFactory ElementFactory
 @inject PQDIFFileCache Cache
 @inject NavigationManager NavigationManager
 
@@ -87,7 +87,7 @@
         Cache.Updated -= HandleCacheUpdated;
     }
 
-    private async void HandleCacheUpdated(object sender, EventArgs args)
+    private async void HandleCacheUpdated(object? sender, EventArgs args)
     {
         FileKeys = await Cache
             .RetrieveKeysAsync()

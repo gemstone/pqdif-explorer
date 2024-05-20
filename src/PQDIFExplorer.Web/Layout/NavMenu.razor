@@ -4,7 +4,6 @@
 
 @inject PQDIFFileCache Cache
 
-
 <div class="top-row pl-4 navbar navbar-dark">
     <a class="navbar-brand" href="">
         <img src="explorer.ico" width="32" height="32" aria-hidden="true" /> PQDIF Explorer
@@ -62,7 +61,7 @@
     public void Dispose() =>
         Cache.Updated -= HandleCacheUpdated;
 
-    private async void HandleCacheUpdated(object sender, EventArgs args)
+    private async void HandleCacheUpdated(object? sender, EventArgs args)
     {
         FileKeys = await Cache
             .RetrieveKeysAsync()
