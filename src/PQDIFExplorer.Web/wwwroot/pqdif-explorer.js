@@ -44,7 +44,7 @@
             var num = (Math.random() * 0xFFFFFFFF) << 0;
             var id = num.toString(16);
 
-            if (dropHandler[id])
+            if (dropHandlers[id])
                 continue;
 
             dropHandler.id = id;
@@ -70,7 +70,7 @@
     };
 
     $this.unregisterDropHandler = function (id) {
-        dropHandler[id] = undefined;
+        dropHandlers[id] = undefined;
     };
 
     $this.cacheFilesAsync = async function (fileSource) {
