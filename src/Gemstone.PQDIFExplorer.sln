@@ -1,12 +1,12 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.29326.143
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34902.65
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{1B73EDFB-2410-4828-9835-FE353FC1C2BF}"
 	ProjectSection(SolutionItems) = preProject
-		..\docs\_config.yml = ..\docs\_config.yml
 		..\docs\README.md = ..\docs\README.md
+		..\docs\_config.yml = ..\docs\_config.yml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "img", "img", "{DFC219B4-2CF1-49CC-B203-A0E1FF73E20A}"
@@ -16,7 +16,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "img", "img", "{DFC219B4-2CF
 		..\docs\img\gemstone-wide-600.png = ..\docs\img\gemstone-wide-600.png
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PQDIFExplorer.Web", "PQDIFExplorer.Web\PQDIFExplorer.Web.csproj", "{E0078D89-9FA4-4600-A71E-BCC99ACC42B0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PQDIFExplorer.Web", "PQDIFExplorer.Web\PQDIFExplorer.Web.csproj", "{3FB43B13-9356-455F-A788-85384F3F56C0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,10 +24,10 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{E0078D89-9FA4-4600-A71E-BCC99ACC42B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E0078D89-9FA4-4600-A71E-BCC99ACC42B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E0078D89-9FA4-4600-A71E-BCC99ACC42B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E0078D89-9FA4-4600-A71E-BCC99ACC42B0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3FB43B13-9356-455F-A788-85384F3F56C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3FB43B13-9356-455F-A788-85384F3F56C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3FB43B13-9356-455F-A788-85384F3F56C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3FB43B13-9356-455F-A788-85384F3F56C0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

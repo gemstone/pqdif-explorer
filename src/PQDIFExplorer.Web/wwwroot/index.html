@@ -1,27 +1,26 @@
-﻿<!DOCTYPE html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PQDIF Explorer</title>
     <base href="/" />
-    <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet" />
-    <link href="css/app.css" rel="stylesheet" />
-    <link href="_content/Gemstone.Web.Razor/treeview.css" rel="stylesheet" />
-    <link href="manifest.json" rel="manifest" />
+    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="css/app.css" />
+    <link rel="stylesheet" href="_content/Gemstone.Web.Razor/treeview.css" />
+    <link href="manifest.webmanifest" rel="manifest" />
     <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
 </head>
 
 <body>
-    <app>Loading...</app>
-
-    <div id="blazor-not-supported">
-        Web Assembly is not supported by your web browser.
-        For details about web browser compatibility, see
-        <a href="https://developer.mozilla.org/en-US/docs/WebAssembly#Browser_compatibility">
-            https://developer.mozilla.org/en-US/docs/WebAssembly#Browser_compatibility
-        </a>.
+    <div id="app">
+        <svg class="loading-progress">
+            <circle r="40%" cx="50%" cy="50%" />
+            <circle r="40%" cx="50%" cy="50%" />
+        </svg>
+        <div class="loading-progress-text"></div>
     </div>
 
     <div id="blazor-error-ui">
@@ -30,54 +29,24 @@
         <a class="dismiss">🗙</a>
     </div>
 
-    <script>
-        var wasmSupported = (function () {
-            try {
-                var wasmFound =
-                    typeof WebAssembly === "object" &&
-                    typeof WebAssembly.instantiate === "function";
-
-                if (wasmFound) {
-                    var module = new WebAssembly.Module(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00));
-
-                    if (module instanceof WebAssembly.Module)
-                        return new WebAssembly.Instance(module) instanceof WebAssembly.Instance;
-                }
-            } catch (e) {
-            }
-
-            return false;
-        })();
-
-        if (!wasmSupported) {
-            var appElement = document.getElementsByTagName("app")[0];
-            appElement.style.display = "none";
-
-            var notSupportedElement = document.getElementById("blazor-not-supported");
-            notSupportedElement.style.display = "block";
-        }
-    </script>
-
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="_content/Gemstone.Web.Razor/gemstone.js"></script>
     <script src="pqdif-explorer.js"></script>
 
     <script>
-        if (wasmSupported) {
-            (async function () {
-                var registration = await navigator.serviceWorker.register('service-worker.js');
+        (async function () {
+            var registration = await navigator.serviceWorker.register('service-worker.js');
 
-                if (!window.location.href.startsWith(registration.scope))
-                    window.location.href = registration.scope;
+            if (!window.location.href.startsWith(registration.scope))
+                window.location.href = registration.scope;
 
-                await navigator.serviceWorker.ready;
+            await navigator.serviceWorker.ready;
 
-                // The PQDIF files are cached by the service worker
-                // so the app won't work without a controller
-                if (!navigator.serviceWorker.controller)
-                    window.location.reload();
-            })();
-        }
+            // The PQDIF files are cached by the service worker
+            // so the app won't work without a controller
+            if (!navigator.serviceWorker.controller)
+                window.location.reload();
+        })();
     </script>
 </body>
 

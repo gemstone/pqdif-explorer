@@ -1,25 +1,20 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.1</TargetFramework>
-    <RazorLangVersion>3.0</RazorLangVersion>
-    <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
+    <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <OutputPath>..\..\build\$(Configuration)</OutputPath>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
+    <BaseOutputPath>..\..\build\$(Configuration)</BaseOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Gemstone.Numeric" Version="1.0.56" />
-    <PackageReference Include="Gemstone.PQDIF" Version="1.0.56" />
-    <PackageReference Include="Gemstone.Web.Razor" Version="1.0.56" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="3.2.1" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Build" Version="3.2.1" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="3.2.1" PrivateAssets="all" />
-    <PackageReference Include="System.Linq.Async" Version="4.1.1" />
-    <PackageReference Include="System.Net.Http.Json" Version="3.2.1" />
+    <PackageReference Include="Gemstone.Numeric" Version="1.0.117" />
+    <PackageReference Include="Gemstone.PQDIF" Version="1.0.117" />
+    <PackageReference Include="Gemstone.Web.Razor" Version="1.0.117" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.5" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.5" PrivateAssets="all" />
+    <PackageReference Include="System.Linq.Async" Version="6.0.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -64,11 +59,16 @@
 
   <Target Name="UpdateBasePath" BeforeTargets="BeforeBuild" Condition="'$(BasePath)' != ''">
     <ReplaceFileText InputFileName="wwwroot\index.html" OutputFileName="$(IntermediateOutputPath)\wwwroot\index.html" MatchExpression="&lt;base href=&quot;/&quot; /&gt;" ReplacementText="&lt;base href=&quot;$(BasePath)&quot; /&gt;" />
+    <ReplaceFileText InputFileName="wwwroot\service-worker.published.js" OutputFileName="$(IntermediateOutputPath)\wwwroot\service-worker.published.js" MatchExpression="const base = &quot;/&quot;;" ReplacementText="const base = &quot;$(BasePath)&quot;;" />
     <ItemGroup>
       <Content Remove="wwwroot\index.html" />
+      <Content Remove="wwwroot\service-worker.published.js" />
     </ItemGroup>
     <ItemGroup>
       <Content Include="$(IntermediateOutputPath)\wwwroot\index.html" Link="wwwroot\index.html" />
+      <ServiceWorker Update="wwwroot\service-worker.js">
+        <PublishedContent>$(IntermediateOutputPath)\wwwroot\service-worker.published.js</PublishedContent>
+      </ServiceWorker>
     </ItemGroup>
   </Target>
 
