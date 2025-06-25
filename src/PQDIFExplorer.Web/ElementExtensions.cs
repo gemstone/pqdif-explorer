@@ -49,7 +49,7 @@ public static class ElementExtensions
         // Determine whether the tag definition contains
         // a list of identifiers which can be used to
         // display the value in a more readable format
-        IReadOnlyCollection<Identifier> identifiers = tag?.ValidIdentifiers ?? new List<Identifier>();
+        IReadOnlyCollection<Identifier> identifiers = tag?.ValidIdentifiers ?? Array.Empty<Identifier>();
 
         // Some identifier collections define a set of bitfields which can be
         // combined to represent a collection of states rather than a single value
