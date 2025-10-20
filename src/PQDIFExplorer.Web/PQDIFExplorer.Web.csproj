@@ -12,8 +12,8 @@
     <PackageReference Include="Gemstone.Numeric" Version="1.0.117" />
     <PackageReference Include="Gemstone.PQDIF" Version="1.0.117" />
     <PackageReference Include="Gemstone.Web.Razor" Version="1.0.117" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.5" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.5" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.10" PrivateAssets="all" />
     <PackageReference Include="System.Linq.Async" Version="6.0.1" />
   </ItemGroup>
 
